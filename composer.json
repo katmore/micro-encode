@@ -1,7 +1,7 @@
 {
    "name": "MicroEncode",
    "description" : "micro package for php containing encoding utility libraries",
-   "homepage":"https://github.com/katmore/MicroEncode",
+   "homepage":"https://github.com/katmore/micro-encode",
     "autoload": {
         "psr-4": {
             "MicroEncode\\": "src/MicroEncode/"
@@ -12,6 +12,6 @@
        "GPL-3.0+"
     ],
     "require": {
-        "php" : ">=7.1.1",     
+        "php" : ">=7.1.1"     
      }    
 }
