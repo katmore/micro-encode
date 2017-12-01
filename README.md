@@ -3,7 +3,7 @@ micro package for php containing encoding utility libraries
 
 ## Legal
 ### Copyright
-MicroEncode - https://github.com/katmore/MicroEncode
+MicroEncode - https://github.com/katmore/micro-encode
 
 Copyright (c) 2012-2017 Doug Bird. All Rights Reserved.
 
