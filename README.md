@@ -11,4 +11,4 @@ Copyright (c) 2012-2017 Doug Bird. All Rights Reserved.
 MicroEncode is copyrighted free software.
 You may redistribute and modify it under either the terms and conditions of the
 "The MIT License (MIT)"; or the terms and conditions of the "GPL v3 License".
-See [LICENSE](https://github.com/katmore/MicroEncode/blob/master/LICENSE) and [GPLv3](https://github.com/katmore/MicroEncode/blob/master/GPLv3).
+See [LICENSE](https://github.com/katmore/micro-encode/blob/master/LICENSE) and [GPLv3](https://github.com/katmore/micro-encode/blob/master/GPLv3).
