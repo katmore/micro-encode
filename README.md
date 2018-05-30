@@ -1,8 +1,5 @@
 # MicroEncode
 micro package for php containing encoding utility libraries
- * [Installation](#)
- * [Encoding data to XML](#)
- * [Encoding data to HTML](#)
 
 ## Installation
 use composer to add **MicroEncode** to your PHP project:
@@ -10,7 +7,11 @@ use composer to add **MicroEncode** to your PHP project:
 composer require katmore/micro-encode
 ```
 
-## Usage - XmlEncoder
+## Usage
+ * [Encoding data to XML](#usage---xmlencoder)
+ * [Encoding data to HTML](#usage---htmlencoder)
+
+### Usage - XmlEncoder
 Example encoding an object to XML:
 ```php
 <?php
@@ -31,7 +32,7 @@ The above code should output the following XML:
 </fx:data>
 ```
 
-## Usage - HtmlEncoder
+### Usage - HtmlEncoder
 Example encoding an object to HTML:
 ```php
 <?php
