@@ -12,7 +12,7 @@ composer require katmore/micro-encode
  * [Encoding data to HTML](#usage---htmlencoder)
 
 ### Usage - XmlEncoder
-The [`XMLEncoder`](./src/MicroEncode/XmlEncoder.php) class facilitates serializing data into an XML document. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: [`boolean`](http://php.net/manual/en/language.types.boolean.php), [`integer`](http://php.net/manual/en/language.types.integer.php), [`float`](http://php.net/manual/en/language.types.float.php), [`string`](http://php.net/manual/en/language.types.string.php), [`array`](http://php.net/manual/en/language.types.array.php), [`object`](http://php.net/manual/en/language.types.object.php), and [`null`](http://php.net/manual/en/language.types.null.php). The serialized XML adheres to the [Flat XML Schema](https://github.com/katmore/flat/wiki/xmlns) specification.
+The [`XMLEncoder`](./src/MicroEncode/XmlEncoder.php) class facilitates serialization of data into an XML document. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: [`boolean`](http://php.net/manual/en/language.types.boolean.php), [`integer`](http://php.net/manual/en/language.types.integer.php), [`float`](http://php.net/manual/en/language.types.float.php), [`string`](http://php.net/manual/en/language.types.string.php), [`array`](http://php.net/manual/en/language.types.array.php), [`object`](http://php.net/manual/en/language.types.object.php), and [`null`](http://php.net/manual/en/language.types.null.php). The serialized XML adheres to the [Flat XML Schema](https://github.com/katmore/flat/wiki/xmlns) specification.
 
 The following is an example of encoding an associative array to XML:
 ```php
@@ -35,7 +35,7 @@ The above code should output the following XML:
 ```
 
 ### Usage - HtmlEncoder
-The [`HtmlEncoder`](./src/MicroEncode/HtmlEncoder.php) class facilitates serializing data into an XML document. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: [`boolean`](http://php.net/manual/en/language.types.boolean.php), [`integer`](http://php.net/manual/en/language.types.integer.php), [`float`](http://php.net/manual/en/language.types.float.php), [`string`](http://php.net/manual/en/language.types.string.php), [`array`](http://php.net/manual/en/language.types.array.php), [`object`](http://php.net/manual/en/language.types.object.php), and [`null`](http://php.net/manual/en/language.types.null.php).
+The [`HtmlEncoder`](./src/MicroEncode/HtmlEncoder.php) class facilitates serialization of data into HTML. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: [`boolean`](http://php.net/manual/en/language.types.boolean.php), [`integer`](http://php.net/manual/en/language.types.integer.php), [`float`](http://php.net/manual/en/language.types.float.php), [`string`](http://php.net/manual/en/language.types.string.php), [`array`](http://php.net/manual/en/language.types.array.php), [`object`](http://php.net/manual/en/language.types.object.php), and [`null`](http://php.net/manual/en/language.types.null.php).
 
 The following is an example of encoding an associative array to HTML:
 ```php
