@@ -1,5 +1,5 @@
 {
-   "name": "MicroEncode",
+   "name": "katmore/micro-encode",
    "description" : "micro package for php containing encoding utility libraries",
    "homepage":"https://github.com/katmore/micro-encode",
     "autoload": {
