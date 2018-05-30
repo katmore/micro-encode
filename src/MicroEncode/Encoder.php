@@ -1,33 +1,29 @@
 <?php
 namespace MicroEncode;
 
-abstract class Encoder {
+abstract class Encoder implements EncoderInterface {
 
-   final public function __toString() {
-      return $this->_encodedValue;
+   final public function __toString() : string {
+      return $this->encodedValue;
    }
    
    final public function getEncodedValue() : string {
-      return $this->_encodedValue;
+      return $this->encodedValue;
    }
    
-   private $_encodedValue = "";
+   private $encodedValue;
    
-   final public function setInput($input) : void {
-      $this->_encodedValue = $this->_serialize($input);
-      return $this;
+   abstract protected function serialize($data) : string;
+   
+   final protected function getOptions() : array {
+      return $this->options;
    }
    
-   abstract protected function _serialize($input) : string;
+   private $options;
    
-   protected function _getOptions() : array {
-      return $this->_options;
-   }
-   
-   private $_options;
-   
-   final public function __construct(array $options=[]) {
-      $this->_options = $options;
+   final public function __construct($data, array $options=[]) {
+      $this->options = $options;
+      $this->encodedValue = $this->serialize($data);
    }
    
 }
