@@ -12,7 +12,9 @@ composer require katmore/micro-encode
  * [Encoding data to HTML](#usage---htmlencoder)
 
 ### Usage - XmlEncoder
-Example encoding an object to XML:
+The [`XMLEncoder`](./src/MicroEncode/XmlEncoder.php) class will serialize data into an XML document. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: scalar, array, object, and null. The XML document adheres to the [Flat XML Schema](https://github.com/katmore/flat/wiki/xmlns) specification.
+
+The following is an example of encoding an associative array to XML:
 ```php
 <?php
 use MicroEncode\XmlEncoder;
@@ -33,7 +35,9 @@ The above code should output the following XML:
 ```
 
 ### Usage - HtmlEncoder
-Example encoding an object to HTML:
+The [`HtmlEncoder`](./src/MicroEncode/HtmlEncoder.php) class will serialize data into an HTML document.
+
+The following is an example of encoding an associative array to HTML:
 ```php
 <?php
 use MicroEncode\HtmlEncoder;
