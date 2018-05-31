@@ -19,7 +19,7 @@ class XmlDataStructure {
    const TYPE_TRUE_ARRAY = 'array';
    const TYPE_GENERIC_OBJECT = 'object';
    const TYPE_UNSERIALIZABLE = 'unserializable';
-   //const 
+   
    
    public static function dataToXmlDataStructureType($data) : string {
       if ($data === null) {
@@ -42,7 +42,14 @@ class XmlDataStructure {
          if ($data instanceof stdClass) {
             return static::TYPE_GENERIC_OBJECT;
          }
-         return get_class($data);
+         $className = get_class($data);
+         $classAnonPrefix = 'class@anonymous';
+         $classAnonPrefixLen = strlen($classAnonPrefix);
+         if (substr($className,0,$classAnonPrefixLen)===$classAnonPrefix) {
+            return static::TYPE_GENERIC_OBJECT;
+         }
+         
+         return $className;
       }
       return static::TYPE_UNSERIALIZABLE;
    }

@@ -2,6 +2,7 @@
 namespace MicroEncode;
 
 use stdClass;
+use finfo;
 
 /**
  * Serializes data to XML
@@ -74,6 +75,7 @@ class XmlEncoder implements  EncoderInterface {
       $meta = "";
       $metatag = "";
       if ($options[static::OPT_GENERATE_STRUCTURE]===true) {
+         
          if (static::META_VALUE_GENERIC_OBJECT!==($meta = static::dataToFlatXmlMetaValue($data))) {
             $meta = ' fx:meta="'.$meta.'"';
          } else {
@@ -211,11 +213,11 @@ class XmlEncoder implements  EncoderInterface {
                         
                         if (intval($data)==$data) {
                            return "extxs:NumericStringInt";
-                        } elseif (floatval($data)==$data) {
-                           return "extxs:NumericStringFloat";
-                        }
+                        } 
                         
-                        return "extxs:NumericString";
+                        
+                        
+                        return "extxs:NumericStringFloat";
                      }
                      
                      if ($param['DateTime'] ) {
@@ -233,25 +235,15 @@ class XmlEncoder implements  EncoderInterface {
                               return "xs:anyURI";
                            }
                         }
-                        if ($param['string']) return "xs:string";
+                        
+                        if ($param['string']) {
+                           if (ctype_print($data)) {
+                              return "xs:string";
+                           }
+                        }
+                        
+                        return "extxs:Binary";
                   }
-      } else {
-         if (is_array($data)) {
-            if ($param['Array']) {
-               $i=0;
-               foreach($data as $k=>$v) {
-                  if ($i>9) break 1;
-                  if (!is_int($k)) return "extxs:Hashmap";
-                  $i++;
-               }
-               return "extxs:Array";
-            }
-         } else
-            if (is_object($data)) {
-               if ($param['Object']) return "extxs:Object";
-            } else {
-               if ($param['other']) return "extxs:".str_replace(" ","",ucwords(gettype($data)));
-            }
       }
    }
    protected static function dataToObjectTypeAttributes($data) : string {
@@ -290,7 +282,6 @@ class XmlEncoder implements  EncoderInterface {
       }
    }
    protected static function dataToFlatXml($data, string $default_node, int $indent_level=1, int $indent_size=3, bool $dump_ok=true,array $checksum=self::DEFAULT_OPTVAL[self::OPT_CHECKSUM_ALGOS],array $options=[]) {
-      
       $ns = "";
       $nsidattr="";
       if (!empty($options['namespace'])) {
@@ -319,7 +310,17 @@ class XmlEncoder implements  EncoderInterface {
          $i=0;
          $xml="";
          foreach ($data as $key=>$value) {
+            
             $node = $key;
+            
+            $nodeNsidattr = $nsidattr;
+            
+            if (is_array($value)) {
+               $nodeNsidattr .= static::dataToArrayTypeAttributes($value);
+            } else if (is_object($value)) {
+               $nodeNsidattr .= static::dataToObjectTypeAttributes($value);
+            }
+            
             $index = NULL;
             if (preg_match('/[^a-z_0-9]/i', $node)) {
                $node = $default_node;
@@ -330,7 +331,7 @@ class XmlEncoder implements  EncoderInterface {
             }
             if (empty($node)) $node = $default_node;
             $node = strtolower($node);
-            $xml .= static::indent($indent_level,$indent_size)."<$ns$node$nsidattr";
+            $xml .= static::indent($indent_level,$indent_size)."<$ns$node$nodeNsidattr";
             if ($is_arr){
                if (is_int($key)) {
                   $index = $key;
@@ -341,41 +342,24 @@ class XmlEncoder implements  EncoderInterface {
                
             }
             if ($key != $node) {
-               
-               
-               if (!$keyval = htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE | ENT_XML1 | ENT_DISALLOWED,'UTF-8')) {
-                  if ($keyval = base64_encode($keyval)) {
-                     $keyval = "data:application/octet-stream;base64,$keyval";
-                  } else {
-                     if($dump_ok) {
-                        ob_start();
-                        var_dump($key);
-                        $dump = ob_get_clean();
-                        if ($dump = base64_encode($dump)) {
-                           $keyval = "data:application/php-object-dump;base64,$dump";
-                        } else {
-                           $keyval ="";
-                        }
-                     } else {
-                        $keyval="";
-                     }
-                  }
-               }
-               if (!empty($keyval)) {
-                  if ($keyval!=$index)
-                     $xml .= " extxs:key=\"$keyval\"";
+               $keyval = htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE | ENT_XML1 | ENT_DISALLOWED,'UTF-8');
+               if ($keyval!=$index) {
+                  $xml .= " extxs:key=\"$keyval\"";
                }
             }
+            
             if (is_array($value) || is_object($value)) {
+               
                $indent_level++;
-               if (isset($options[static::OPT_XSI_TYPE_DETECT]) && $options[static::OPT_XSI_TYPE_DETECT]===true) {
-                  if (is_array($value)) {
-                     $xml .= static::dataToArrayTypeAttributes($value);
-                  } else {
-                     //$xml .= " xsi:type=\"extxs:Object\" extxs:ObjectType=\"".get_class($value)."\"";
-                     $xml .= static::dataToObjectTypeAttributes($value);
-                  }
-               }
+//                if (isset($options[static::OPT_XSI_TYPE_DETECT]) && $options[static::OPT_XSI_TYPE_DETECT]===true) {
+//                   if (is_array($value)) {
+//                      $xml .= static::dataToArrayTypeAttributes($value);
+//                   } else {
+//                      //$xml .= " xsi:type=\"extxs:Object\" extxs:ObjectType=\"".get_class($value)."\"";
+//                      $xml .= static::dataToObjectTypeAttributes($value);
+//                   }
+//                }
+               
                $xml .= ">\n".
                      static::dataToFlatXml($value, $default_node,$indent_level,$indent_size,$dump_ok,$checksum,$options);
                      $indent_level--;
@@ -388,13 +372,8 @@ class XmlEncoder implements  EncoderInterface {
                   }
                   $xml .= "/>\n";
                } else {
-                  if (empty($value)) {
-                     if (is_string($value)) {
-                        $xml .= ' xsi:nil="true"';
-                     }
-                     // ob_start();
-                     // var_dump($value);
-                     // $empty=" empty=\"".htmlspecialchars(trim(ob_get_clean()),ENT_QUOTES | ENT_SUBSTITUTE)."\"";
+                  if (is_string($value) && ($value==="")) {
+                     $xml .= ' xsi:nil="true"';
                      $xml .= "/>\n";
                   } else {
                      $xsi = "";
@@ -414,8 +393,15 @@ class XmlEncoder implements  EncoderInterface {
          return $xml;
          
       } else {
-         if (empty($data)) return "<!--empty-->";
-         if ($xml = htmlspecialchars($data, ENT_SUBSTITUTE | ENT_XML1 | ENT_DISALLOWED,'UTF-8')) return trim($xml);
+         //if (empty($data)) return "<!--empty-->";
+         
+         
+         if (""!==($xml = htmlspecialchars($data, ENT_XML1 | ENT_DISALLOWED,'UTF-8'))) {
+            
+            return trim($xml);
+         }
+         
+         
          $checksum_attr = "";
          foreach ($checksum as $algo) {
             if ($hash = hash($algo,$data)) {
@@ -425,33 +411,22 @@ class XmlEncoder implements  EncoderInterface {
                $checksum_attr .= " $attr=\"$hash\"";
             }
          }
-         if (!$dump_ok) {
-            return "<$default_node$checksum_attr><!--unserializable--></$default_node>";
-         }
-         $type = static::dataToXsiType($data);
-         ob_start();
-         var_dump($data);
-         $dump = ob_get_clean();
-         $encoding = "";
-         if ($data = htmlspecialchars($dump, ENT_SUBSTITUTE | ENT_XML1 | ENT_DISALLOWED,'UTF-8')) {
-            $encoding = " extxs:encoding=\"none\"";
-            $dump = $data;
-         } else {
-            if ($data = base64_encode($dump)) {
-               $dump = $data;
-               $encoding = " extxs:encoding=\"base64\"";
-            } else {
-               //$dump = "<!--unserializable dump-->";
-               $dump = "";
-               $encoding = " extxs:encoding=\"unserializable\" /";
+         
+         if (false!==($base64 = base64_encode($data))) {
+            $encoding = " extxs:encoding=\"base64\"";
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            if (false!==($mtype = $finfo->buffer($data))) {
+               $encoding .= ' extxs:mtype="'.$mtype.'"';
             }
+            $indent_level++;
+            $xml = "\n".static::indent($indent_level,$indent_size);
+            $xml .= "<$default_node extxs:DumpObject=\"xs:base64Binary\"$checksum_attr$encoding>$base64";
+            $indent_level--;
+            $xml .= "</$default_node>\n".static::indent($indent_level,$indent_size);
+            return $xml;
          }
-         $indent_level++;
-         $xml = "\n".static::indent($indent_level,$indent_size);
-         $xml .= "<extxs:dump extxs:DumpObject=\"$type\"$checksum_attr$encoding>$dump";
-         $indent_level--;
-         $xml .= "</extxs:dump>\n".static::indent($indent_level,$indent_size);
-         return $xml;
+         
+         return "<$default_node$checksum_attr><!--unserializable--></$default_node>";return "<$default_node$checksum_attr><!--unserializable--></$default_node>";
       }
    }
    
