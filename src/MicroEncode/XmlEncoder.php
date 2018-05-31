@@ -3,7 +3,12 @@ namespace MicroEncode;
 
 use stdClass;
 
-class XmlEncoder extends Encoder {
+/**
+ * Serializes data to XML
+ *
+ * @author D. Bird <retran@gmail.com>
+ */
+class XmlEncoder implements  EncoderInterface {
    const FLAT_XML_VER="0.2";
    const FLAT_XMLNS = 'https://github.com/katmore/flat/wiki/xmlns';
 
@@ -24,10 +29,42 @@ class XmlEncoder extends Encoder {
       self::OPT_GENERATE_STRUCTURE=>false,
       self::OPT_XSI_TYPE_DETECT=>true,
    ];
+   
+   /**
+    * @return string XML serialized data
+    */
+   public function __toString(): string {
+      return $this->encodedValue;
+   }
+   
+   /**
+    * @return string XML serialized data
+    */
+   public function getEncodedValue(): string {
+      return $this->encodedValue;
+   }
+   
+   /**
+    * @var string
+    */
+   private $encodedValue;
+   
+   /**
+    * 
+    * @param bool|int|float|string|object|array $data data to serialize to XML
+    * @param array $options associative array of one or more options:
+    * <ul>
+    *    <li><b>string</b> <i>\MicroEncode\XmlEncoder::OPT_ROOT_NODE</i>: Specify root node element name; default: 'fx:data'.</li>
+    *    <li><b>string</b> <i>\MicroEncode\XmlEncoder::OPT_DEFAULT_NODE</i>: Specify node element name to use when one cannot be determined from the data itself; default 'fx:data'.</li>
+    *    <li><b>int</b> <i>\MicroEncode\XmlEncoder::OPT_IDENT_SIZE</i>: Specify indentation size; default: 3.</li>
+    *    <li><b>bool</b> <i>\MicroEncode\XmlEncoder::OPT_DUMP_OK</i>: Wheather to generate a special data-dump node for data that cannot be reliably serialized; default: false.</li>
+    *    <li><b>string[]</b> <i>\MicroEncode\XmlEncoder::OPT_CHECKSUM_ALGOS</i>: Each array element value specifies a hash algo used to produce a data checksum with; default: ['md5'].</li>
+    *    <li><b>bool</b> <i>\MicroEncode\XmlEncoder::OPT_GENERATE_STRUCTURE</i>: Wheather to generate a node describing the data structure; default: false.</li>
+    *    <li><b>bool</b> <i>\MicroEncode\XmlEncoder::OPT_XSI_TYPE_DETECT</i>: Wheather to describe data node types using an extended XSI specification; default: true.</li>
+    * </ul>
+    */
+   public function __construct($data, array $options=self::DEFAULT_OPTVAL) {
 
-   protected function serialize($data) : string {
-
-      $options = $this->getOptions();
       foreach (static::DEFAULT_OPTVAL as $opt=>$val) {
          if (!isset($options[$opt])) $options[$opt]=$val;
       }
@@ -37,14 +74,14 @@ class XmlEncoder extends Encoder {
       $meta = "";
       $metatag = "";
       if ($options[static::OPT_GENERATE_STRUCTURE]===true) {
-         if (static::META_VALUE_GENERIC_OBJECT!==($meta = self::dataToFlatXmlMetaValue($data))) {
+         if (static::META_VALUE_GENERIC_OBJECT!==($meta = static::dataToFlatXmlMetaValue($data))) {
             $meta = ' fx:meta="'.$meta.'"';
          } else {
             $meta = " fx:meta=\"extxs:structure\"";
             $structure = new stdClass();
-            $dataStructure = json_decode(json_encode(self::createXmlDataStructure($data)));
+            $dataStructure = json_decode(json_encode(static::createXmlDataStructure($data)));
             $structure->structure = $dataStructure;
-            $metatag = self::dataToFlatXml(
+            $metatag = static::dataToFlatXml(
                $structure,
                'structure',
                1,
@@ -53,14 +90,14 @@ class XmlEncoder extends Encoder {
                [],
                [
                   'namespace'=>'s',
-                  'namespaceindentifyer'=>self::FLAT_XMLNS.'-structure'
+                  'namespaceindentifyer'=>static::FLAT_XMLNS.'-structure'
                ]
             );
          }
             
       }
       $xsins = "";
-      if (!empty($options[static::OPT_XSI_TYPE_DETECT]) || !empty($options[static::OPT_XSI_TYPE_DETECT])) $xsins = ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:extxs="'.self::FLAT_XMLNS.'-extxs"';
+      if (!empty($options[static::OPT_XSI_TYPE_DETECT]) || !empty($options[static::OPT_XSI_TYPE_DETECT])) $xsins = ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:extxs="'.static::FLAT_XMLNS.'-extxs"';
       $checksum_attr = "";
       $checksum_data = NULL;
       foreach ($options[static::OPT_CHECKSUM_ALGOS] as $algo) {
@@ -77,26 +114,24 @@ class XmlEncoder extends Encoder {
       }
       unset($checksum_data);
       
-      $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+      $this->encodedValue = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
       
-      $xml .= '<' . $options[static::OPT_ROOT_NODE] . ' fx:created="'.date("c").'"'.$checksum_attr."$meta$xsins";
+      $this->encodedValue .= '<' . $options[static::OPT_ROOT_NODE] . ' fx:created="'.date("c").'"'.$checksum_attr."$meta$xsins";
       $ftypeattr = "";
       if (is_null($data)) {
          $ftypeattr .= ' xsi:nil="true"';
       } else {
-         //$ftypeattr .= self::typeToXsiAttribute(self::dataToXsiType($data));
          if (is_object($data)) {
-            //$ftypeattr .= ' extxs:ObjectType="'.get_class($data).'"';
-            $ftypeattr .= self::dataToObjectTypeAttributes($data);
+            $ftypeattr .= static::dataToObjectTypeAttributes($data);
          } elseif (is_array($data)) {
-            $ftypeattr .= self::dataToArrayTypeAttributes($data);
+            $ftypeattr .= static::dataToArrayTypeAttributes($data);
          }
       }
-      $xml .=" fx:flat-xml-ver=\"".self::FLAT_XML_VER."\" xmlns:fx=\"".self::FLAT_XMLNS."\" xmlns=\"".self::FLAT_XMLNS."-object\"$ftypeattr>\n";
+      $this->encodedValue .=" fx:flat-xml-ver=\"".static::FLAT_XML_VER."\" xmlns:fx=\"".static::FLAT_XMLNS."\" xmlns=\"".static::FLAT_XMLNS."-object\"$ftypeattr>\n";
       
       
       
-      $xml .= self::dataToFlatXml(
+      $this->encodedValue .= static::dataToFlatXml(
             $data,
             $options[static::OPT_DEFAULT_NODE],
             1,
@@ -114,13 +149,13 @@ class XmlEncoder extends Encoder {
                ]
             ]
             );
-      $xml .= $metatag;
-      $xml .= '</' . $options[static::OPT_ROOT_NODE] . ">";
+      $this->encodedValue .= $metatag;
+      $this->encodedValue .= '</' . $options[static::OPT_ROOT_NODE] . ">";
       
-      return $xml;
+      return $this->encodedValue;
       
    }
-   private static function indent(int $level=1,int $size=3) : string {
+   protected static function indent(int $level=1,int $size=3) : string {
       if ( ($level < 1) || ($size < 1) ) return "";
       return str_repeat(" ", $size*$level);
    }
@@ -139,13 +174,13 @@ class XmlEncoder extends Encoder {
       return htmlspecialchars(gettype($data), ENT_QUOTES | ENT_SUBSTITUTE | ENT_XML1 | ENT_DISALLOWED,'UTF-8');
    }
    
-   private static function typeToXsiAttribute($type) : string {
+   protected static function typeToXsiAttribute($type) : string {
       
       return 'xsi:type="'.$type.'"';
       
    }
    
-   private static function dataToXsiType($data,array $option=null) : string {
+   protected static function dataToXsiType($data,array $option=null) : string {
       
       $param = [
             'DateTime'=>true,
@@ -190,25 +225,15 @@ class XmlEncoder extends Encoder {
                            }
                         }
                      }
-                     // if ($param['ip_addr']) {
-                     // if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                     //
-                        // }
-                        // }
                         if ($param['hexBinary'] ) {
                            if (ctype_xdigit($data)) return "xs:hexBinary";
                         }
-                        // if ($analyze['base64Binary']) {
-                        // if (base64_decode($data)) return "base64Binary";
-                        // }
                         if ($param['anyURI']) {
                            if(filter_var($data, FILTER_VALIDATE_URL)) {
                               return "xs:anyURI";
                            }
                         }
                         if ($param['string']) return "xs:string";
-                        
-                        //$xsi=" ".self::typeToXsiAttribute("string");
                   }
       } else {
          if (is_array($data)) {
@@ -229,7 +254,7 @@ class XmlEncoder extends Encoder {
             }
       }
    }
-   private static function dataToObjectTypeAttributes($data) : string {
+   protected static function dataToObjectTypeAttributes($data) : string {
       if (!is_object($data)) return "";
       $type = get_class($data);
       if ($type=='stdClass') {
@@ -237,10 +262,9 @@ class XmlEncoder extends Encoder {
       } else {
          $type = "\\$type";
       }
-      //" xsi:type=\"extxs:Object\" extxs:ObjectType=\"".get_class($data)."\"";
       return " xsi:type=\"extxs:Object\" extxs:ObjectType=\"".preg_replace('/[\x00-\x1F\x80-\xFF]/', '',$type)."\"";
    }
-   private static function dataToArrayTypeAttributes($data) : string {
+   protected static function dataToArrayTypeAttributes($data) : string {
       if (!is_array($data)) return "";
       $all_same_type = true;
       $last_type = null;
@@ -251,12 +275,12 @@ class XmlEncoder extends Encoder {
          if (!is_int($k)) {
             return " xsi:type=\"extxs:Hashmap\"";
          }
-         if (!$first_value && (self::dataToXsiType($v,['string'=>true])!==$last_type)) {
+         if (!$first_value && (static::dataToXsiType($v,['string'=>true])!==$last_type)) {
             $all_same_type = false;
             break 1;
          }
          $first_value = false;
-         $last_type = self::dataToXsiType($v,['string'=>true]);
+         $last_type = static::dataToXsiType($v,['string'=>true]);
          $i++;
       }
       if ($all_same_type) {
@@ -265,7 +289,7 @@ class XmlEncoder extends Encoder {
          return " xsi:type=\"extxs:Array\" extxs:ArrayType=\"extxs:Mixed[".count($data)."]\"";
       }
    }
-   private static function dataToFlatXml($data, string $default_node, int $indent_level=1, int $indent_size=3, bool $dump_ok=true,array $checksum=self::DEFAULT_OPTVAL[self::OPT_CHECKSUM_ALGOS],array $options=[]) {
+   protected static function dataToFlatXml($data, string $default_node, int $indent_level=1, int $indent_size=3, bool $dump_ok=true,array $checksum=self::DEFAULT_OPTVAL[self::OPT_CHECKSUM_ALGOS],array $options=[]) {
       
       $ns = "";
       $nsidattr="";
@@ -279,7 +303,7 @@ class XmlEncoder extends Encoder {
                
                if (empty($options['namespace_child'])) {
                   if (empty($options['namespaceindentifyer'])) {
-                     $nsid = self::FLAT_XMLNS."-".$options['namespace'];
+                     $nsid = static::FLAT_XMLNS."-".$options['namespace'];
                   } else {
                      $nsid = htmlspecialchars($options['namespaceindentifyer'], ENT_QUOTES | ENT_SUBSTITUTE | ENT_XML1 | ENT_DISALLOWED,'UTF-8');
                   }
@@ -292,9 +316,6 @@ class XmlEncoder extends Encoder {
       }
       
       if ($is_arr = is_array($data) || is_object($data)) {
-         // if (method_exists( $data, '__toString' )) {
-         // return self::dataToFlatXml($data->__toString(), $default_node,$indent_level,$indent_size,$dump_ok,$checksum);
-         // }
          $i=0;
          $xml="";
          foreach ($data as $key=>$value) {
@@ -309,7 +330,7 @@ class XmlEncoder extends Encoder {
             }
             if (empty($node)) $node = $default_node;
             $node = strtolower($node);
-            $xml .= self::indent($indent_level,$indent_size)."<$ns$node$nsidattr";
+            $xml .= static::indent($indent_level,$indent_size)."<$ns$node$nsidattr";
             if ($is_arr){
                if (is_int($key)) {
                   $index = $key;
@@ -349,16 +370,16 @@ class XmlEncoder extends Encoder {
                $indent_level++;
                if (isset($options[static::OPT_XSI_TYPE_DETECT]) && $options[static::OPT_XSI_TYPE_DETECT]===true) {
                   if (is_array($value)) {
-                     $xml .= self::dataToArrayTypeAttributes($value);
+                     $xml .= static::dataToArrayTypeAttributes($value);
                   } else {
                      //$xml .= " xsi:type=\"extxs:Object\" extxs:ObjectType=\"".get_class($value)."\"";
-                     $xml .= self::dataToObjectTypeAttributes($value);
+                     $xml .= static::dataToObjectTypeAttributes($value);
                   }
                }
                $xml .= ">\n".
-                     self::dataToFlatXml($value, $default_node,$indent_level,$indent_size,$dump_ok,$checksum,$options);
+                     static::dataToFlatXml($value, $default_node,$indent_level,$indent_size,$dump_ok,$checksum,$options);
                      $indent_level--;
-                     $xml .= self::indent($indent_level,$indent_size)."</$ns$node>\n";
+                     $xml .= static::indent($indent_level,$indent_size)."</$ns$node>\n";
                      
             } else {
                if ($value===null) {
@@ -378,12 +399,12 @@ class XmlEncoder extends Encoder {
                   } else {
                      $xsi = "";
                      if (!empty($options['xsi_type'])) {
-                        if ($xsitype = self::dataToXsiType($value,$options['xsi_type'])) {
-                           $xsi=" ".self::typeToXsiAttribute($xsitype);
+                        if ($xsitype = static::dataToXsiType($value,$options['xsi_type'])) {
+                           $xsi=" ".static::typeToXsiAttribute($xsitype);
                         }
                      }
                      
-                     $xml .= "$xsi>".self::dataToFlatXml($value, $default_node,$indent_level,$indent_size,$dump_ok,$checksum,$options)."</$ns$node>\n";
+                     $xml .= "$xsi>".static::dataToFlatXml($value, $default_node,$indent_level,$indent_size,$dump_ok,$checksum,$options)."</$ns$node>\n";
                   }
                }
             }
@@ -407,7 +428,7 @@ class XmlEncoder extends Encoder {
          if (!$dump_ok) {
             return "<$default_node$checksum_attr><!--unserializable--></$default_node>";
          }
-         $type = self::dataToXsiType($data);
+         $type = static::dataToXsiType($data);
          ob_start();
          var_dump($data);
          $dump = ob_get_clean();
@@ -426,10 +447,10 @@ class XmlEncoder extends Encoder {
             }
          }
          $indent_level++;
-         $xml = "\n".self::indent($indent_level,$indent_size);
+         $xml = "\n".static::indent($indent_level,$indent_size);
          $xml .= "<extxs:dump extxs:DumpObject=\"$type\"$checksum_attr$encoding>$dump";
          $indent_level--;
-         $xml .= "</extxs:dump>\n".self::indent($indent_level,$indent_size);
+         $xml .= "</extxs:dump>\n".static::indent($indent_level,$indent_size);
          return $xml;
       }
    }
