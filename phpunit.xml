@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit backupGlobals="false"
+         backupStaticAttributes="false"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="false"
+         stopOnFailure="false">
+	<php>
+	   <ini name="error_reporting" value="-1" />
+	   <ini name="intl.default_locale" value="en" />
+	   <ini name="intl.error_level" value="0" />
+	   <ini name="memory_limit" value="-1" />
+	</php>
+    <testsuites>
+        <testsuite name="MicroEncode Unit Test Suite">
+            <directory suffix="Test.php">./tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+    <!-- whitelist directory filters for code-coverage analysis -->
+    <filter>
+        <whitelist>
+            <directory>./src/MicroEncode</directory>
+        </whitelist>
+    </filter>    
+</phpunit>
