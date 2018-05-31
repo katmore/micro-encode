@@ -11,7 +11,7 @@ final class SerializeHtmlTest extends TestCase {
          $this->markTestSkipped('missing class: SimpleXMLElement');
       }
    }
-   private static function randString(int $len,string $char_pool="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") : string {
+   public static function randString(int $len,string $char_pool="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") : string {
       $charPoolIdxCeil=strlen($char_pool)-1;
       $randString="";
       for($i=0;$i<$len;$i++) {
@@ -20,7 +20,7 @@ final class SerializeHtmlTest extends TestCase {
       return $randString;
    }
    
-   private static function randStringStartingWithAlpha(int $len) : string {
+   public static function randStringStartingWithAlpha(int $len) : string {
       return static::randString(1,"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ").static::randString($len-1);
    }
    
