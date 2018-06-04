@@ -10,7 +10,7 @@ use finfo;
  * @author D. Bird <retran@gmail.com>
  */
 class XmlEncoder implements  EncoderInterface {
-   const FLAT_XML_VER="0.2";
+
    const FLAT_XMLNS = 'https://github.com/katmore/flat/wiki/xmlns';
 
    const OPT_ROOT_NODE = 0;
@@ -20,6 +20,7 @@ class XmlEncoder implements  EncoderInterface {
    const OPT_CHECKSUM_ALGOS = 4;
    const OPT_GENERATE_STRUCTURE = 5;
    const OPT_XSI_TYPE_DETECT = 6;
+   const OPT_GENERATE_CREATED_ATTR = 7;
    
    const DEFAULT_OPTVAL = [
       self::OPT_ROOT_NODE=>'fx:data',
@@ -29,6 +30,7 @@ class XmlEncoder implements  EncoderInterface {
       self::OPT_CHECKSUM_ALGOS=>['md5'],
       self::OPT_GENERATE_STRUCTURE=>false,
       self::OPT_XSI_TYPE_DETECT=>true,
+      self::OPT_GENERATE_CREATED_ATTR=>false,
    ];
    
    /**
@@ -101,10 +103,10 @@ class XmlEncoder implements  EncoderInterface {
       $xsins = "";
       if (!empty($options[static::OPT_XSI_TYPE_DETECT]) || !empty($options[static::OPT_XSI_TYPE_DETECT])) $xsins = ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:extxs="'.static::FLAT_XMLNS.'-extxs"';
       $checksum_attr = "";
-      $checksum_data = NULL;
+      $checksum_data = null;
       foreach ($options[static::OPT_CHECKSUM_ALGOS] as $algo) {
          
-         if (empty($checksum_data)) {
+         if ($checksum_data===null) {
             $checksum_data = json_encode($checksum_data);
          }
          if ($hash = hash($algo,$checksum_data)) {
@@ -116,9 +118,14 @@ class XmlEncoder implements  EncoderInterface {
       }
       unset($checksum_data);
       
+      $created_attr = "";
+      if (!empty($options[static::OPT_GENERATE_CREATED_ATTR])) {
+         $created_attr = ' fx:created="'.date("c").'"';
+      }
+      
       $this->encodedValue = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
       
-      $this->encodedValue .= '<' . $options[static::OPT_ROOT_NODE] . ' fx:created="'.date("c").'"'.$checksum_attr."$meta$xsins";
+      $this->encodedValue .= '<' . $options[static::OPT_ROOT_NODE] . " xmlns:fx=\"".static::FLAT_XMLNS."\" xmlns=\"".static::FLAT_XMLNS."-object\"$created_attr$checksum_attr$meta$xsins";
       $ftypeattr = "";
       if (is_null($data)) {
          $ftypeattr .= ' xsi:nil="true"';
@@ -129,9 +136,7 @@ class XmlEncoder implements  EncoderInterface {
             $ftypeattr .= static::dataToArrayTypeAttributes($data);
          }
       }
-      $this->encodedValue .=" fx:flat-xml-ver=\"".static::FLAT_XML_VER."\" xmlns:fx=\"".static::FLAT_XMLNS."\" xmlns=\"".static::FLAT_XMLNS."-object\"$ftypeattr>\n";
-      
-      
+      $this->encodedValue .="$ftypeattr>\n";
       
       $this->encodedValue .= static::dataToFlatXml(
             $data,
