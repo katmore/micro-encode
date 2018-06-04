@@ -24,7 +24,7 @@ $myData = [
 echo (new \MicroEncode\XmlEncoder($myData));
 ```
 The above code should output the following XML:
-```html
+```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <fx:data xmlns:fx="https://github.com/katmore/flat/wiki/xmlns" xmlns="https://github.com/katmore/flat/wiki/xmlns-object" fx:md5="37a6259cc0c1dae299a7866489dff0bd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:extxs="https://github.com/katmore/flat/wiki/xmlns-extxs" xsi:type="extxs:Hashmap">
    <my_example_1 xsi:type="xs:string">my 1st data value</my_example_1>
