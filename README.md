@@ -16,15 +16,11 @@ The [`XMLEncoder`](./src/MicroEncode/XmlEncoder.php) class serializes an XML doc
 
 The following is an example of encoding an associative array to XML:
 ```php
-<?php
-use MicroEncode\XmlEncoder;
-require __DIR__.'/vendor/autoload.php';
-
 $myData = [
    'my'=>'data'
 ];
 
-echo (new XmlEncoder($myData));
+echo (new \MicroEncode\XmlEncoder($myData));
 ```
 The above code should output the following XML:
 ```html
@@ -39,15 +35,11 @@ The [`HtmlEncoder`](./src/MicroEncode/HtmlEncoder.php) class generates HTML from
 
 The following is an example of encoding an associative array to HTML:
 ```php
-<?php
-use MicroEncode\HtmlEncoder;
-require __DIR__.'/vendor/autoload.php';
-
 $myData = [
    'my'=>'data'
 ];
 
-echo (new HtmlEncoder($myData));
+echo (new \MicroEncode\HtmlEncoder($myData));
 ```
 The above code should output the following HTML:
 ```html
