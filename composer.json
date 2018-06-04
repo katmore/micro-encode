@@ -1,6 +1,6 @@
 {
    "name": "katmore/micro-encode",
-   "description" : "micro package for php containing encoding utility libraries",
+   "description" : "xml encoder and html generator",
    "homepage":"https://github.com/katmore/micro-encode",
     "autoload": {
         "psr-4": {
