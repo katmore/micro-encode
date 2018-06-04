@@ -17,7 +17,8 @@ The [`XMLEncoder`](./src/MicroEncode/XmlEncoder.php) class serializes an XML doc
 The following is an example of encoding associative array data into an XML document:
 ```php
 $myData = [
-   'my'=>'data'
+   'my_example_1'=>'my 1st data value',
+   'my_example_2'=>'my 2nd data value',
 ];
 
 echo (new \MicroEncode\XmlEncoder($myData));
@@ -25,8 +26,9 @@ echo (new \MicroEncode\XmlEncoder($myData));
 The above code should output the following XML:
 ```html
 <?xml version="1.0" encoding="UTF-8"?>
-<fx:data fx:created="2018-05-30T15:32:18-07:00" fx:md5="37a6259cc0c1dae299a7866489dff0bd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:extxs="https://github.com/katmore/flat/wiki/xmlns-extxs" fx:flat-xml-ver="0.2" xmlns:fx="https://github.com/katmore/flat/wiki/xmlns" xmlns="https://github.com/katmore/flat/wiki/xmlns-object" xsi:type="extxs:Hashmap">
-   <my xsi:type="xs:string">data</my>
+<fx:data xmlns:fx="https://github.com/katmore/flat/wiki/xmlns" xmlns="https://github.com/katmore/flat/wiki/xmlns-object" fx:md5="37a6259cc0c1dae299a7866489dff0bd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:extxs="https://github.com/katmore/flat/wiki/xmlns-extxs" xsi:type="extxs:Hashmap">
+   <my_example_1 xsi:type="xs:string">my 1st data value</my_example_1>
+   <my_example_2 xsi:type="xs:string">my 2nd data value</my_example_2>
 </fx:data>
 ```
 
@@ -36,7 +38,8 @@ The [`HtmlEncoder`](./src/MicroEncode/HtmlEncoder.php) class generates HTML from
 The following is an example of generating HTML from associative array data:
 ```php
 $myData = [
-   'my'=>'data'
+   'my_example_1'=>'my 1st data value',
+   'my_example_2'=>'my 2nd data value',
 ];
 
 echo (new \MicroEncode\HtmlEncoder($myData));
@@ -44,9 +47,14 @@ echo (new \MicroEncode\HtmlEncoder($myData));
 The above code should output the following HTML:
 ```html
 <ul data-type="array">
-   <li data-index="0" data-key="my" data-role="item"><span data-role="item-key">my</span>:&nbsp;<span data-role="item-value" data-type="string">data</span></li><!--/data-item: (my)-->
+   <li data-index="0" data-key="my_example_1" data-role="item"><span data-role="item-key">my_example_1</span>:&nbsp;<span data-role="item-value" data-type="string">my 1st data value</span></li><!--/data-item: (my_example_1)-->
+   <li data-index="1" data-key="my_example_2" data-role="item"><span data-role="item-key">my_example_2</span>:&nbsp;<span data-role="item-value" data-type="string">my 2nd data value</span></li><!--/data-item: (my_example_2)-->
 </ul>
 ```
+
+The above HTML would render into set of unordered list items as follows:
+ * my_example_1: my 1st data value
+ * my_example_2: my 2nd data value
 
 ## Legal
 ### Copyright
