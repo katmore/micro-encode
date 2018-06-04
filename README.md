@@ -14,7 +14,7 @@ composer require katmore/micro-encode
 ### XmlEncoder Usage
 The [`XMLEncoder`](./src/MicroEncode/XmlEncoder.php) class serializes an XML document from arbitrary data. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: [`boolean`](http://php.net/manual/en/language.types.boolean.php), [`integer`](http://php.net/manual/en/language.types.integer.php), [`float`](http://php.net/manual/en/language.types.float.php), [`string`](http://php.net/manual/en/language.types.string.php), [`array`](http://php.net/manual/en/language.types.array.php), [`object`](http://php.net/manual/en/language.types.object.php), and [`null`](http://php.net/manual/en/language.types.null.php). The serialized XML adheres to the [Flat XML Schema](https://github.com/katmore/flat/wiki/xmlns) specification.
 
-The following is an example of encoding an associative array to XML:
+The following is an example of encoding associative array data into an XML document:
 ```php
 $myData = [
    'my'=>'data'
@@ -33,7 +33,7 @@ The above code should output the following XML:
 ### HtmlEncoder Usage
 The [`HtmlEncoder`](./src/MicroEncode/HtmlEncoder.php) class generates HTML from arbitrary data. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: [`boolean`](http://php.net/manual/en/language.types.boolean.php), [`integer`](http://php.net/manual/en/language.types.integer.php), [`float`](http://php.net/manual/en/language.types.float.php), [`string`](http://php.net/manual/en/language.types.string.php), [`array`](http://php.net/manual/en/language.types.array.php), [`object`](http://php.net/manual/en/language.types.object.php), and [`null`](http://php.net/manual/en/language.types.null.php).
 
-The following is an example of encoding an associative array to HTML:
+The following is an example of generating HTML from associative array data:
 ```php
 $myData = [
    'my'=>'data'
