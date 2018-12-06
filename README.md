@@ -69,6 +69,7 @@ vendor/bin/phpunit
 The [`tests.sh`](./tests.sh) wrapper script is provided for convenience.
 ```sh
 ./tests.sh
+```
 
 ## Legal
 ### Copyright
