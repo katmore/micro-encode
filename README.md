@@ -56,6 +56,20 @@ The above HTML would render into set of unordered list items as follows:
  * my_example_1: my 1st data value
  * my_example_2: my 2nd data value
 
+## Unit Tests
+ * [`coverage.txt`](./coverage.txt): unit test coverage report
+ * [`phpunit.xml`](./phpunit.xml): PHPUnit configuration file
+ * [`tests/Unit`](./tests/Unit): source code for unit tests
+
+To perform unit tests, execute phpunit located in the `vendor/bin` directory.
+```sh
+vendor/bin/phpunit
+```
+
+The [`tests.sh`](./tests.sh) wrapper script is provided for convenience.
+```sh
+./tests.sh
+
 ## Legal
 ### Copyright
 MicroEncode - https://github.com/katmore/micro-encode
