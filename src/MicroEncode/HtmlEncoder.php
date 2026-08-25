@@ -2,7 +2,7 @@
 /*
  * part of the katmore/micro-encode project
  *
- * Copyright (c) 2012-2018 Doug Bird. All Rights Reserved.
+ * Copyright (c) 2012-2026 Doug Bird. All Rights Reserved.
  */
 
 declare(strict_types=1);

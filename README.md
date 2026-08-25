@@ -95,7 +95,7 @@ The [`tests.sh`](./tests.sh) wrapper script remains available for coverage-repor
 ### Copyright
 MicroEncode - https://github.com/katmore/micro-encode
 
-Copyright (c) 2012-2018 Doug Bird. All Rights Reserved.
+Copyright (c) 2012-2026 Doug Bird. All Rights Reserved.
 
 ### License
 MicroEncode is copyrighted free software.

@@ -1,4 +1,10 @@
 <?php
+/*
+ * part of the katmore/micro-encode project
+ *
+ * Copyright (c) 2012-2026 Doug Bird. All Rights Reserved.
+ */
+
 require __DIR__.'/../vendor/autoload.php';
 
 $myData = [
