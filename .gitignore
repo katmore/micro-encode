@@ -1,5 +1,8 @@
 .*
 !/.gitignore
+!/.gitattributes
+!/.github
+!/.github/**
 /vendor/
 composer.lock
 *.log

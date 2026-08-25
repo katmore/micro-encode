@@ -1,16 +1,20 @@
 
 
-Code Coverage Report:      
-  2018-12-06 00:54:05      
-                           
- Summary:                  
-  Classes:  0.00% (0/3)    
-  Methods: 68.42% (13/19)  
-  Lines:   92.45% (257/278)
+Code Coverage Report:
+  2026-08-25 04:59:23
 
-\MicroEncode::MicroEncode\HtmlEncoder
-  Methods:  66.67% ( 4/ 6)   Lines:  80.85% ( 38/ 47)
-\MicroEncode::MicroEncode\XmlDataStructure
-  Methods:  50.00% ( 1/ 2)   Lines:  73.33% ( 22/ 30)
-\MicroEncode::MicroEncode\XmlEncoder
-  Methods:  72.73% ( 8/11)   Lines:  98.01% (197/201)
+ Summary:
+  Classes: 40.00% (2/5)
+  Methods: 57.14% (12/21)
+  Lines:   89.65% (260/290)
+
+MicroEncode\HtmlEncoder
+  Methods:  66.66% ( 4/ 6)   Lines:  77.77% ( 35/ 45)
+MicroEncode\HtmlEncoderOptions
+  Methods: 100.00% ( 1/ 1)   Lines: 100.00% (  1/  1)
+MicroEncode\XmlDataStructure
+  Methods:  50.00% ( 1/ 2)   Lines:  70.83% ( 17/ 24)
+MicroEncode\XmlEncoder
+  Methods:  45.45% ( 5/11)   Lines:  94.06% (206/219)
+MicroEncode\XmlEncoderOptions
+  Methods: 100.00% ( 1/ 1)   Lines: 100.00% (  1/  1)

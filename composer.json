@@ -1,21 +1,33 @@
 {
    "name": "katmore/micro-encode",
-   "description" : "xml encoder and html generator",
-   "homepage":"https://github.com/katmore/micro-encode",
-    "autoload": {
-        "psr-4": {
-            "MicroEncode\\": "src/MicroEncode/"
-        }
-    },
-	"license": [
-       "MIT",
-       "GPL-3.0+"
-    ],
-    "require": {
-        "php" : ">=7.2.0"     
-     },
+   "description": "xml encoder and html generator",
+   "homepage": "https://github.com/katmore/micro-encode",
+   "type": "library",
+   "autoload": {
+       "psr-4": {
+           "MicroEncode\\": "src/MicroEncode/"
+       }
+   },
+   "license": [
+      "MIT",
+      "GPL-3.0-or-later"
+   ],
+   "require": {
+      "php": "^8.5",
+      "ext-fileinfo": "*"
+   },
    "require-dev": {
-      "phpunit/phpunit": "^7",
-      "ext-simplexml" : "*"
+      "ext-dom": "*",
+      "ext-simplexml": "*",
+      "phpstan/phpstan": "^2.1",
+      "phpunit/phpunit": "^13"
+   },
+   "scripts": {
+      "test": "phpunit",
+      "test-coverage": "phpunit --coverage-text=coverage.txt",
+      "analyse": "phpstan analyse"
+   },
+   "config": {
+      "sort-packages": true
    }
 }

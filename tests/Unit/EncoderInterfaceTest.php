@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use MicroEncode\HtmlEncoder;
 use MicroEncode\XmlEncoder;
@@ -23,7 +24,7 @@ final class EncoderInterfaceTest extends TestCase {
    const SAMPLE_DATA_PROPERTY_COUNT = 50;
    const SAMPLE_DATA_PROPERTY_VALUE_LEN = 100;
 
-   public function sampleDataProvider() : array {
+   public static function sampleDataProvider() : array {
       $dataSet = [];
       for($i=0;$i<static::SAMPLE_DATA_COUNT;$i++) {
          $data = [];
@@ -41,17 +42,13 @@ final class EncoderInterfaceTest extends TestCase {
       return $dataSet;
    }
    
-   /**
-    * @dataProvider sampleDataProvider
-    */
+   #[DataProvider('sampleDataProvider')]
    public function testXmlEncodedValueMatchesMagicStringMethod($data) {
       $xmlEncoder = new XmlEncoder($data);
       $this->assertEquals($xmlEncoder->__toString(), $xmlEncoder->getEncodedValue());
    }
-   
-   /**
-    * @dataProvider sampleDataProvider
-    */
+
+   #[DataProvider('sampleDataProvider')]
    public function testHtmlEncodedValueMatchesMagicStringMethod($data) {
       $htmlEncoder = new HtmlEncoder($data);
       $this->assertEquals($htmlEncoder->__toString(), $htmlEncoder->getEncodedValue());

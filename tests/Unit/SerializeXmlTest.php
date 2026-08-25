@@ -1,16 +1,17 @@
 <?php
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use MicroEncode\XmlEncoder;
 
 final class SerializeXmlTest extends TestCase {
-   
+
    const XMLNS_FLAT = 'https://github.com/katmore/flat/wiki/xmlns';
    const XMLNS_FLAT_EXTXS = 'https://github.com/katmore/flat/wiki/xmlns-extxs';
    const XMLNS_SCHEMA_INSTANCE = 'http://www.w3.org/2001/XMLSchema-instance';
-   
-   public function setUp() {
+
+   protected function setUp(): void {
       if (!class_exists('SimpleXMLElement')) {
          $this->markTestSkipped('missing class: SimpleXMLElement');
       }
@@ -38,7 +39,7 @@ final class SerializeXmlTest extends TestCase {
    /**
     * provides trivial objects having lower-case property names
     */
-   public function trivialObjectWithLowerCasePropertyNameProvider() : array {
+   public static function trivialObjectWithLowerCasePropertyNameProvider() : array {
       $objectSet = [];
       for($i=0;$i<static::TRIVIAL_OBJECT_COUNT;$i++) {
          $object = [];
@@ -58,7 +59,7 @@ final class SerializeXmlTest extends TestCase {
    /**
     * provides trivial objects having upper-case property names
     */
-   public function trivialObjectWithUpperCasePropertyNameProvider() : array {
+   public static function trivialObjectWithUpperCasePropertyNameProvider() : array {
       $objectSet = [];
       for($i=0;$i<static::TRIVIAL_OBJECT_COUNT;$i++) {
          $object = [];
@@ -133,9 +134,7 @@ final class SerializeXmlTest extends TestCase {
       unset($element);
    }
    
-   /**
-    * @dataProvider trivialObjectWithLowerCasePropertyNameProvider
-    */
+   #[DataProvider('trivialObjectWithLowerCasePropertyNameProvider')]
    public function testSerializeTrivialObjectsWithLowerCasePropertyNames(object $object) {
       
       $xmlString = (string) new XmlEncoder($object);
@@ -146,9 +145,7 @@ final class SerializeXmlTest extends TestCase {
       
    }
    
-   /**
-    * @dataProvider trivialObjectWithUpperCasePropertyNameProvider
-    */
+   #[DataProvider('trivialObjectWithUpperCasePropertyNameProvider')]
    public function testSerializeTrivialObjectsWithUpperCasePropertyNames(object $object) {
       
       $xmlString = (string) new XmlEncoder($object);
@@ -163,7 +160,7 @@ final class SerializeXmlTest extends TestCase {
    const NESTED_OBJECT_PROPERTY_WITH_STRING_VALUE_COUNT = 50;
    const NESTED_OBJECT_PROPERTY_WITH_OBJECT_VALUE_COUNT = 50;
    const NESTED_OBJECT_PROPERTY_VALUE_LEN = 100;
-   public function nestedObjectProvier() : array {
+   public static function nestedObjectProvier() : array {
       $objectSet = [];
       for($i=0;$i<static::NESTED_OBJECT_COUNT;$i++) {
          $object = [];
@@ -190,9 +187,7 @@ final class SerializeXmlTest extends TestCase {
       return $objectSet;
    }
 
-   /**
-    * @dataProvider nestedObjectProvier
-    */
+   #[DataProvider('nestedObjectProvier')]
    public function testSerializeNestedObjects(object $object) {
       $xmlString = (string) new XmlEncoder($object);
       
@@ -251,7 +246,7 @@ final class SerializeXmlTest extends TestCase {
    const STRING_ARRAY_ELEMENT_COUNT = 2;
    const STRING_ARRAY_ELEMENT_LEN = 100;
    
-   public function stringArrayProvider() : array {
+   public static function stringArrayProvider() : array {
       $arraySet = [];
       for($i=0;$i<static::STRING_ARRAY_COUNT;$i++) {
          $array = [];
@@ -263,9 +258,7 @@ final class SerializeXmlTest extends TestCase {
       return $arraySet;
    }
    
-   /**
-    * @dataProvider stringArrayProvider
-    */
+   #[DataProvider('stringArrayProvider')]
    public function testSerializeStringArray(array $array) {
       $xmlString = (string) new XmlEncoder($array);
       

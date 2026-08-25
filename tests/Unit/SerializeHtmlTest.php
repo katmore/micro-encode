@@ -1,12 +1,13 @@
 <?php
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use MicroEncode\HtmlEncoder;
 
 final class SerializeHtmlTest extends TestCase {
-   
-   public function setUp() {
+
+   protected function setUp(): void {
       if (!class_exists('SimpleXMLElement')) {
          $this->markTestSkipped('missing class: SimpleXMLElement');
       }
@@ -30,7 +31,7 @@ final class SerializeHtmlTest extends TestCase {
    /**
     * provides trivial objects
     */
-   public function trivialObjectProvider() : array {
+   public static function trivialObjectProvider() : array {
       $objectSet = [];
       for($i=0;$i<static::TRIVIAL_OBJECT_COUNT;$i++) {
          $object = [];
@@ -50,9 +51,7 @@ final class SerializeHtmlTest extends TestCase {
    
    
    
-   /**
-    * @dataProvider trivialObjectProvider
-    */
+   #[DataProvider('trivialObjectProvider')]
    public function testSerializeTrivialObjects(object $object) {
       
       

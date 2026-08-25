@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use MicroEncode\XmlEncoder;
+use MicroEncode\XmlEncoderOptions;
 
 final class SampleDataClass {
    public $my_property;
@@ -17,7 +19,7 @@ final class XmlStructureTest extends TestCase {
    const XMLNS_FLAT_EXTXS = 'https://github.com/katmore/flat/wiki/xmlns-extxs';
    const XMLNS_FLAT_STRUCTURE = 'https://github.com/katmore/flat/wiki/xmlns-structure';
    
-   public function setUp() {
+   protected function setUp(): void {
       if (!class_exists('SimpleXMLElement')) {
          $this->markTestSkipped('missing class: SimpleXMLElement');
       }
@@ -37,7 +39,7 @@ final class XmlStructureTest extends TestCase {
    }
    
    const INTEGER_DATA_COUNT = 100;
-   public function integerDataProvider() : array {
+   public static function integerDataProvider() : array {
       $integerSet = [];
       for($i=0;$i<static::INTEGER_DATA_COUNT;$i++) {
          $integerSet []= [$i];
@@ -46,9 +48,7 @@ final class XmlStructureTest extends TestCase {
    }
    
    public function testNullDataStructure() {
-      $xmlString = (string) new XmlEncoder(null,[
-         XmlEncoder::OPT_GENERATE_STRUCTURE=>true,
-      ]);
+      $xmlString = (string) new XmlEncoder(null, new XmlEncoderOptions(generateStructure: true));
       
       $simpleXml = new SimpleXMLElement($xmlString);
       
@@ -71,13 +71,9 @@ final class XmlStructureTest extends TestCase {
       $this->assertEquals('NULL',$metaVal, 'root element "fx:meta" attribute value should have expected value');
    }
    
-   /**
-    * @dataProvider integerDataProvider
-    */
+   #[DataProvider('integerDataProvider')]
    public function testIntegerDataStructure(int $integer) {
-      $xmlString = (string) new XmlEncoder($integer,[
-         XmlEncoder::OPT_GENERATE_STRUCTURE=>true,
-      ]);
+      $xmlString = (string) new XmlEncoder($integer, new XmlEncoderOptions(generateStructure: true));
       
       //echo "xmlString: $xmlString\n";
       
@@ -109,12 +105,10 @@ final class XmlStructureTest extends TestCase {
       $object = new SampleDataClass();
       $objectType = '\\'.get_class($object);
       
-      $xmlString = (string) new XmlEncoder($object,[
-         XmlEncoder::OPT_GENERATE_STRUCTURE=>true,
-      ]);
-      
+      $xmlString = (string) new XmlEncoder($object, new XmlEncoderOptions(generateStructure: true));
+
       $simpleXml = new SimpleXMLElement($xmlString);
-      
+
       $objectTypeAttrVal = null;
       foreach($simpleXml->attributes(static::XMLNS_FLAT_EXTXS) as $attr=>$attrVal) {
          if (($attr==='ObjectType')) {
@@ -138,19 +132,17 @@ final class XmlStructureTest extends TestCase {
          }
       };
       
-      $xmlString = (string) new XmlEncoder($object,[
-         XmlEncoder::OPT_GENERATE_STRUCTURE=>true,
-      ]);
-      
+      $xmlString = (string) new XmlEncoder($object, new XmlEncoderOptions(generateStructure: true));
+
       $simpleXml = new SimpleXMLElement($xmlString);
-      
+
       $structureNode = $simpleXml->children(static::XMLNS_FLAT_STRUCTURE);
-      
+
       $this->assertEquals(1, $structureNode->count());
-      
-      
+
+
       $structure = $structureNode->children(static::XMLNS_FLAT_STRUCTURE);
-      
+
       $sType = null;
       $sNodeElement = null;
       foreach($structure as $element) {
@@ -162,14 +154,14 @@ final class XmlStructureTest extends TestCase {
             }
       }
       unset($element);
-      
+
       $this->assertNotNull($sType,'structure element contains a "type" child element');
       $this->assertEquals('object', $sType);
-      
+
       $this->assertNotNull($sNodeElement,'structure element contains a "node" child element');
-      
+
       $sNodeProperties = $sNodeElement->children(static::XMLNS_FLAT_STRUCTURE);
-      
+
       $myProperty = null;
       foreach($sNodeProperties as $element) {
          if ($element->getName()==='my_property') {
@@ -177,11 +169,11 @@ final class XmlStructureTest extends TestCase {
          }
       }
       unset($element);
-      
+
       $this->assertNotNull($myProperty,'structure element contains a "node" child element that contains a "my_property" child element');
-      
+
       $myPropertyStructure = $myProperty->children(static::XMLNS_FLAT_STRUCTURE);
-      
+
       $sType = null;
       $sNodeElement = null;
       foreach($myPropertyStructure as $element) {
@@ -193,25 +185,23 @@ final class XmlStructureTest extends TestCase {
             }
       }
       unset($element);
-      
+
       $this->assertNotNull($sType,'structure element contains a "node" child element that contains a "my_property" child element that contains a "type" child element');
       $this->assertEquals('scalar', $sType);
-      
+
       $this->assertNotNull($sNodeElement,'structure element contains a "node" child element that contains a "my_property" child element that contains a "node" child element');
       $this->assertEmpty($sNodeElement->__toString(),'"structure element contains a "node" child element that contains a "my_property" child element that contains a "node" child element with an empty value');
-      
-      
+
+
    }
-   
+
    public function testGenericObjectStructure() {
-   
+
       $genericObject = (object) [
          'my_property'=>static::randString(100),
       ];
-      
-      $xmlString = (string) new XmlEncoder($genericObject,[
-         XmlEncoder::OPT_GENERATE_STRUCTURE=>true,
-      ]);
+
+      $xmlString = (string) new XmlEncoder($genericObject, new XmlEncoderOptions(generateStructure: true));
       
       $simpleXml = new SimpleXMLElement($xmlString);
       

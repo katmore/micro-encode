@@ -1,6 +1,8 @@
 # MicroEncode
 xml encoder and html generator
 
+**Requires PHP 8.5 or later.** See [CHANGELOG.md](./CHANGELOG.md) for the v2.0 upgrade notes if you're coming from a 1.x release.
+
 ## Installation
 use composer to add **MicroEncode** to your PHP project:
 ```
@@ -32,6 +34,14 @@ The above code should output the following XML:
 </fx:data>
 ```
 
+Options are passed as a [`MicroEncode\XmlEncoderOptions`](./src/MicroEncode/XmlEncoderOptions.php) value object, using named constructor arguments for whichever settings you want to override:
+```php
+echo (new \MicroEncode\XmlEncoder($myData, new \MicroEncode\XmlEncoderOptions(
+   rootNode: 'my:root',
+   generateStructure: true,
+)));
+```
+
 ### HtmlEncoder Usage
 The [`HtmlEncoder`](./src/MicroEncode/HtmlEncoder.php) class generates HTML from arbitrary data. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: [`boolean`](http://php.net/manual/en/language.types.boolean.php), [`integer`](http://php.net/manual/en/language.types.integer.php), [`float`](http://php.net/manual/en/language.types.float.php), [`string`](http://php.net/manual/en/language.types.string.php), [`array`](http://php.net/manual/en/language.types.array.php), [`object`](http://php.net/manual/en/language.types.object.php), and [`null`](http://php.net/manual/en/language.types.null.php).
 
@@ -56,17 +66,27 @@ The above HTML would render into set of unordered list items as follows:
  * my_example_1: my 1st data value
  * my_example_2: my 2nd data value
 
+Options are passed as a [`MicroEncode\HtmlEncoderOptions`](./src/MicroEncode/HtmlEncoderOptions.php) value object:
+```php
+echo (new \MicroEncode\HtmlEncoder($myData, new \MicroEncode\HtmlEncoderOptions(
+   parentElement: 'ol',
+   childElement: 'li',
+)));
+```
+
 ## Unit Tests
  * [`coverage.txt`](./coverage.txt): unit test coverage report
  * [`phpunit.xml`](./phpunit.xml): PHPUnit configuration file
  * [`tests/Unit`](./tests/Unit): source code for unit tests
+ * [`phpstan.neon`](./phpstan.neon): PHPStan static analysis configuration
 
-To perform unit tests, execute phpunit located in the `vendor/bin` directory.
+To perform unit tests and static analysis, use the composer scripts:
 ```sh
-vendor/bin/phpunit
+composer test
+composer analyse
 ```
 
-The [`tests.sh`](./tests.sh) wrapper script is provided for convenience.
+The [`tests.sh`](./tests.sh) wrapper script remains available for coverage-report generation.
 ```sh
 ./tests.sh
 ```

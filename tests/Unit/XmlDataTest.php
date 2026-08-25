@@ -1,14 +1,15 @@
 <?php
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use MicroEncode\XmlEncoder;
 
 final class XmlDataTest extends TestCase {
-   
+
    const XMLNS_SCHEMA_INSTANCE = 'http://www.w3.org/2001/XMLSchema-instance';
-   
-   public function setUp() {
+
+   protected function setUp(): void {
       if (!class_exists('SimpleXMLElement')) {
          $this->markTestSkipped('missing class: SimpleXMLElement');
       }
@@ -311,7 +312,7 @@ final class XmlDataTest extends TestCase {
    }
    
    const DATETIME_STRING_DATA_COUNT = 10;
-   public function dateTimeStringProvider() : array {
+   public static function dateTimeStringProvider() : array {
       $time = time();
       $dateTimeSet = [[date('c',$time)]];
       $dateTimeSetCeil = static::DATETIME_STRING_DATA_COUNT-1;
@@ -321,9 +322,7 @@ final class XmlDataTest extends TestCase {
       }
       return $dateTimeSet;
    }
-   /**
-    * @dataProvider dateTimeStringProvider
-    */
+   #[DataProvider('dateTimeStringProvider')]
    public function testDateTimeData(string $dateTimeString) {
       
       $object = (object) [
@@ -363,16 +362,14 @@ final class XmlDataTest extends TestCase {
       $this->assertEquals((string) $dateTimeString,$myPropertyVal ,'the "my_property" element should have expected value');
    }
    
-   public function booleanDataProvider() : array {
+   public static function booleanDataProvider() : array {
       return [
          [true],
          [false],
       ];
    }
    
-   /**
-    * @dataProvider booleanDataProvider
-    */
+   #[DataProvider('booleanDataProvider')]
    public function testBooleanData(bool $boolean) {
       $object = (object) [
          'my_property'=>$boolean,
@@ -413,7 +410,7 @@ final class XmlDataTest extends TestCase {
    }
    
    const DECIMAL_DATA_COUNT = 100;
-   public function decimalDataProvider() : array {
+   public static function decimalDataProvider() : array {
       $decimalSet = [];
       $decimalSetCeil = static::DECIMAL_DATA_COUNT-1;
       for($i=1;$i<$decimalSetCeil;$i++) {
@@ -422,9 +419,7 @@ final class XmlDataTest extends TestCase {
       return $decimalSet;
    }
    
-   /**
-    * @dataProvider decimalDataProvider
-    */
+   #[DataProvider('decimalDataProvider')]
    public function testDecimalData(float $decimal) {
       $object = (object) [
          'my_property'=>$decimal,
@@ -464,9 +459,7 @@ final class XmlDataTest extends TestCase {
 
    }
    
-   /**
-    * @dataProvider decimalDataProvider
-    */
+   #[DataProvider('decimalDataProvider')]
    public function testNumericStringFloatData(float $decimal) {
       $object = (object) [
          'my_property'=>(string) $decimal,
@@ -508,7 +501,7 @@ final class XmlDataTest extends TestCase {
    }
    
    const INTEGER_DATA_COUNT = 100;
-   public function integerDataProvider() : array {
+   public static function integerDataProvider() : array {
       $integerSet = [];
       for($i=0;$i<static::INTEGER_DATA_COUNT;$i++) {
          $integerSet []= [$i];
@@ -516,9 +509,7 @@ final class XmlDataTest extends TestCase {
       return $integerSet;
    }
    
-   /**
-    * @dataProvider integerDataProvider
-    */
+   #[DataProvider('integerDataProvider')]
    public function testNumericStringIntData(float $decimal) {
       $object = (object) [
          'my_property'=>(string) $decimal,
@@ -559,9 +550,7 @@ final class XmlDataTest extends TestCase {
       
    }
    
-   /**
-    * @dataProvider integerDataProvider
-    */
+   #[DataProvider('integerDataProvider')]
    public function testIntegerData(int $integer) {
       $object = (object) [
          'my_property'=>$integer,
