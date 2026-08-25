@@ -7,7 +7,6 @@ ME_USAGE='[<...OPTIONS>] [<TEST-SUITE>] [[--]<...passthru args>]'
 ME_COPYRIGHT='Copyright (c) 2016-2026, Doug Bird. All Rights Reserved.'
 ME_NAME='tests.sh'
 ME_DIR="/$0"; ME_DIR=${ME_DIR%/*}; ME_DIR=${ME_DIR:-.}; ME_DIR=${ME_DIR#/}/; ME_DIR=$(cd "$ME_DIR"; pwd)
-ME_SOURCE="$ME_DIR/$0"
 
 #
 # paths
@@ -33,7 +32,7 @@ PRINT_COVERAGE=0
 HTML_COVERAGE_REPORT=0
 SKIP_COVERAGE_REPORT=0
 OPTION_STATUS=0
-while getopts :?qhua-: arg; do { case $arg in
+while getopts :hua-: arg; do { case $arg in
    h|u|a) HELP_MODE=1;;
    -) LONG_OPTARG="${OPTARG#*=}"; case $OPTARG in
       help|usage|about) HELP_MODE=1;;
@@ -96,7 +95,7 @@ fi
 cmd_status_filter() {
    cmd_status=$1
    ! [ "$cmd_status" -eq "$cmd_status" ] 2> /dev/null && return 1
-   test "${CMD_STATUS_DONTUSE#*$cmd_status}" != "$CMD_STATUS_DONTUSE" && return 1
+   case " $CMD_STATUS_DONTUSE " in *" $cmd_status "*) return 1;; esac
    ( [ "$cmd_status" -lt "126" ] || [ "$cmd_status" -gt "165" ] ) && return $cmd_status
    return 1
 }
@@ -179,8 +178,28 @@ print_phpunit_coverage_report() {
 	 phpunit_coverage_check || return 0
 	 [ "$PRINT_COVERAGE" = "1" ] || return 0
 	 [ -f "$(print_phpunit_text_coverage_path $test_suffix)" ] || return 0
-	 printf "\n$(print_phpunit_text_coverage_path):\n"
-	 cat $(print_phpunit_text_coverage_path)
+	 printf "\n$(print_phpunit_text_coverage_path $test_suffix):\n"
+	 cat $(print_phpunit_text_coverage_path $test_suffix)
+}
+
+#
+# runs one phpunit suite: sanity-checked already by the caller.
+# $1: path to a phpunit config file, or "" for the default phpunit.xml
+# $2: coverage-report filename suffix, or "" for none
+# remaining args: passed through to phpunit
+#
+run_phpunit_suite() {
+   suite_config=$1
+   suite_suffix=$2
+   shift 2
+   if [ -n "$suite_config" ]; then
+      phpunit $(print_phpunit_coverage_opt "$suite_suffix") -c "$suite_config" "$@"
+   else
+      phpunit $(print_phpunit_coverage_opt "$suite_suffix") "$@"
+   fi
+   suite_status=$?
+   [ "$suite_status" = "0" ] && print_phpunit_coverage_report "$suite_suffix"
+   return $suite_status
 }
 
 TEST_SUITE=$1
@@ -195,27 +214,25 @@ if [ -n "$TEST_SUITE" ]; then
    #
    if [ "$TEST_SUITE" = "phpunit" ]; then
       phpunit_sanity_check || exit
-      phpunit $(print_phpunit_coverage_opt) "$@" || {
+      run_phpunit_suite "" "" "$@" || {
       	 cmd_status_filter $?
       	 exit
       }
-      print_phpunit_coverage_report
       exit 0
    fi
    case $TEST_SUITE in
       phpunit-*)
       if [ -f "$TEST_SUITE.xml" ]; then
-      	 TEST_SUFFIX=$(echo $file | sed -e 's/phpunit-//g')
-   	     TEST_SUFFIX=$(echo $TEST_SUFFIX | sed -e 's/.xml//g')
+      	 TEST_SUFFIX=${TEST_SUITE#phpunit-}
+      	 TEST_SUFFIX=${TEST_SUFFIX%.xml}
          phpunit_sanity_check || exit
-         phpunit $(print_phpunit_coverage_opt $TEST_SUFFIX) -c "$TEST_SUITE.xml" "$@" || {
+         run_phpunit_suite "$TEST_SUITE.xml" "$TEST_SUFFIX" "$@" || {
       	    cmd_status_filter $?
       	    exit
      	   }
-     	   print_phpunit_coverage_report $TEST_SUFFIX
          exit 0
       fi
-      ;; 
+      ;;
    esac
 
    >&2 echo "$ME_NAME: (FATAL) unrecognized test suite: $TEST_SUITE"
@@ -237,29 +254,16 @@ phpunit_sanity_check || exit
 #
 TESTS_STATUS=0
 
-echo "print_phpunit_coverage_opt: $(print_phpunit_coverage_opt)"
 #
 # run all phpunit tests
 #
-phpunit $(print_phpunit_coverage_opt)
-CMD_STATUS=$?
-if [ "$CMD_STATUS" = "0" ]; then
-	 print_phpunit_coverage_report
-else
-  TESTS_STATUS=$ME_ERROR_ONE_OR_MORE_TESTS_FAILED
-fi
+run_phpunit_suite "" "" || TESTS_STATUS=$ME_ERROR_ONE_OR_MORE_TESTS_FAILED
 
 for file in phpunit-*.xml; do
    [ -f "$file" ] || continue
-   TEST_SUFFIX=$(echo $file | sed -e 's/phpunit-//g')
-   TEST_SUFFIX=$(echo $TEST_SUFFIX | sed -e 's/.xml//g')
-   phpunit $(print_phpunit_coverage_opt $TEST_SUFFIX) -c $(basename $file)
-   CMD_STATUS=$?
-   if [ "$CMD_STATUS" = "0" ]; then
-  	  print_phpunit_coverage_report $TEST_SUFFIX
-   else
-      TESTS_STATUS=$ME_ERROR_ONE_OR_MORE_TESTS_FAILED
-   fi
+   TEST_SUFFIX=${file#phpunit-}
+   TEST_SUFFIX=${TEST_SUFFIX%.xml}
+   run_phpunit_suite "$file" "$TEST_SUFFIX" || TESTS_STATUS=$ME_ERROR_ONE_OR_MORE_TESTS_FAILED
 done
 
 

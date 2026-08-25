@@ -12,6 +12,7 @@ composer require katmore/micro-encode
 ## Usage
  * [Encoding data to XML](#xmlencoder-usage) - XmlEncoder Usage
  * [Generating HTML from data](#htmlencoder-usage) - HtmlEncoder Usage
+ * [Generating Markdown from data](#markdownencoder-usage) - MarkdownEncoder Usage
 
 ### XmlEncoder Usage
 The [`XMLEncoder`](./src/MicroEncode/XmlEncoder.php) class serializes an XML document from arbitrary data. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: [`boolean`](http://php.net/manual/en/language.types.boolean.php), [`integer`](http://php.net/manual/en/language.types.integer.php), [`float`](http://php.net/manual/en/language.types.float.php), [`string`](http://php.net/manual/en/language.types.string.php), [`array`](http://php.net/manual/en/language.types.array.php), [`object`](http://php.net/manual/en/language.types.object.php), and [`null`](http://php.net/manual/en/language.types.null.php). The XML document conforms to the [Flat XML Schema](https://github.com/katmore/flat/wiki/xmlns) specification.
@@ -72,6 +73,32 @@ echo (new \MicroEncode\HtmlEncoder($myData, new \MicroEncode\HtmlEncoderOptions(
    parentElement: 'ol',
    childElement: 'li',
 )));
+```
+
+### MarkdownEncoder Usage
+The [`MarkdownEncoder`](./src/MicroEncode/MarkdownEncoder.php) class generates human-readable Markdown from arbitrary data. Unlike `XmlEncoder` and `HtmlEncoder`, it is not a reversible serializer — it does not preserve enough type/structure metadata to reconstruct the original PHP value, and it has no options.
+
+Sequential indexed arrays (PHP "lists") become ordered Markdown lists; associative arrays and objects become unordered lists with their keys shown in bold. Each nested array or object is classified independently, so the two forms can mix freely at any depth.
+
+```php
+$myData = [
+   'name' => 'Doug',
+   'active' => true,
+   'things' => [
+      'foo',
+      'bar',
+   ],
+];
+
+echo (new \MicroEncode\MarkdownEncoder($myData));
+```
+The above code should output the following Markdown:
+```markdown
+- **name:** Doug
+- **active:** true
+- **things:**
+  1. foo
+  2. bar
 ```
 
 ## Unit Tests

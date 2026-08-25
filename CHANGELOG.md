@@ -4,6 +4,13 @@
 
 Modernization release targeting current PHP and tooling. This is a **breaking** release.
 
+### Added
+- `MarkdownEncoder`: generates human-readable Markdown from arbitrary data. Sequential
+  indexed arrays render as ordered lists, associative arrays/objects render as unordered
+  keyed lists, and each nested structure is classified independently. It is a
+  human-readable representation, not a reversible serializer (unlike `XmlEncoder`), and
+  has no options.
+
 ### Breaking changes
 - Minimum PHP version is now **8.5** (was `>=7.2`).
 - `XmlEncoder` and `HtmlEncoder` no longer accept an options array keyed by `OPT_*` integer

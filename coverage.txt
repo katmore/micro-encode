@@ -1,17 +1,19 @@
 
 
 Code Coverage Report:
-  2026-08-25 04:59:23
+  2026-08-25 05:52:17
 
  Summary:
-  Classes: 40.00% (2/5)
-  Methods: 57.14% (12/21)
-  Lines:   89.65% (260/290)
+  Classes: 50.00% (3/6)
+  Methods: 75.00% (27/36)
+  Lines:   91.64% (329/359)
 
 MicroEncode\HtmlEncoder
   Methods:  66.66% ( 4/ 6)   Lines:  77.77% ( 35/ 45)
 MicroEncode\HtmlEncoderOptions
   Methods: 100.00% ( 1/ 1)   Lines: 100.00% (  1/  1)
+MicroEncode\MarkdownEncoder
+  Methods: 100.00% (15/15)   Lines: 100.00% ( 69/ 69)
 MicroEncode\XmlDataStructure
   Methods:  50.00% ( 1/ 2)   Lines:  70.83% ( 17/ 24)
 MicroEncode\XmlEncoder
