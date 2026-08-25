@@ -16,6 +16,9 @@
       "php": "^8.5",
       "ext-fileinfo": "*"
    },
+   "bin": [
+      "bin/json2md"
+   ],
    "require-dev": {
       "ext-dom": "*",
       "ext-simplexml": "*",

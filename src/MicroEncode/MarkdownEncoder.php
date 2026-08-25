@@ -42,24 +42,27 @@ class MarkdownEncoder implements EncoderInterface
 
     /**
      * @param mixed $data data to serialize to Markdown
+     * @param MarkdownEncoderOptions $options encoding options
      */
-    public function __construct(mixed $data)
+    public function __construct(mixed $data, MarkdownEncoderOptions $options = new MarkdownEncoderOptions())
     {
-        $this->encodedValue = static::dataToMarkdown($data);
+        $this->encodedValue = static::dataToMarkdown($data, $options->orderedLists);
     }
 
-    protected static function dataToMarkdown(mixed $data): string
+    protected static function dataToMarkdown(mixed $data, bool $orderedLists): string
     {
         if (is_array($data)) {
             if ($data === []) {
                 return self::EMPTY_LIST_LABEL;
             }
-            return array_is_list($data) ? static::renderList($data) : static::renderMap($data);
+            return array_is_list($data)
+                ? static::renderList($data, $orderedLists)
+                : static::renderMap($data, $orderedLists);
         }
 
         if (is_object($data)) {
             $pairs = static::objectToPairs($data);
-            return $pairs === [] ? self::EMPTY_MAP_LABEL : static::renderMap($pairs);
+            return $pairs === [] ? self::EMPTY_MAP_LABEL : static::renderMap($pairs, $orderedLists);
         }
 
         if (is_string($data) && str_contains($data, "\n")) {
@@ -84,36 +87,63 @@ class MarkdownEncoder implements EncoderInterface
     /**
      * @param list<mixed> $items
      */
-    protected static function renderList(array $items): string
+    protected static function renderList(array $items, bool $orderedLists): string
     {
+        // A "-" marker only ever works when it's immediately followed by inline
+        // content. The moment an item needs block layout (a nested array,
+        // object, or multiline string), its marker line has to be left bare,
+        // and CommonMark cannot reliably tell a bare "-" item's own nested
+        // content apart from a new sibling item using that same character - it
+        // can even fold a preceding label into a heading. Ordered markers don't
+        // have this problem: "1.", "2." are self-disambiguating. So a list
+        // containing any non-scalar element always renders as ordered,
+        // regardless of $orderedLists, as a structural necessity rather than
+        // a style choice. Mixing marker characters within one list isn't an
+        // option either way - CommonMark would read that as two separate lists.
+        $ordered = $orderedLists || static::containsBlockElement($items);
+
         $lines = [];
         $index = 1;
         foreach ($items as $value) {
-            $lines[] = static::renderItem($index.'.', null, $value);
+            $marker = $ordered ? $index.'.' : '-';
+            $lines[] = static::renderItem($marker, null, $value, $orderedLists);
             $index++;
         }
         return implode("\n", $lines);
     }
 
     /**
+     * @param list<mixed> $items
+     */
+    protected static function containsBlockElement(array $items): bool
+    {
+        foreach ($items as $value) {
+            if (static::isBlock($value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * @param array<int|string, mixed> $pairs
      */
-    protected static function renderMap(array $pairs): string
+    protected static function renderMap(array $pairs, bool $orderedLists): string
     {
         $lines = [];
         foreach ($pairs as $key => $value) {
             $label = '**'.static::escapeMarkdown((string) $key).':**';
-            $lines[] = static::renderItem('-', $label, $value);
+            $lines[] = static::renderItem('-', $label, $value, $orderedLists);
         }
         return implode("\n", $lines);
     }
 
-    protected static function renderItem(string $marker, ?string $label, mixed $value): string
+    protected static function renderItem(string $marker, ?string $label, mixed $value, bool $orderedLists): string
     {
         $prefix = $label === null ? $marker : "$marker $label";
 
         if (static::isBlock($value)) {
-            $block = static::indentLines(static::dataToMarkdown($value), strlen($marker) + 1);
+            $block = static::indentLines(static::dataToMarkdown($value, $orderedLists), strlen($marker) + 1);
 
             // A label is rendered as an open paragraph. If the nested block's own
             // first line is itself a bare, content-less list marker (a list of

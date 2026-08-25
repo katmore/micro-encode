@@ -10,6 +10,7 @@ declare(strict_types=1);
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use MicroEncode\MarkdownEncoder;
+use MicroEncode\MarkdownEncoderOptions;
 
 final class MarkdownEncoderTest extends TestCase {
 
@@ -36,12 +37,45 @@ final class MarkdownEncoderTest extends TestCase {
 
    public function testSequentialArray() {
       $markdown = (string) new MarkdownEncoder(['foo', 'bar']);
-      $this->assertSame("1. foo\n2. bar", $markdown);
+      $this->assertSame("- foo\n- bar", $markdown);
    }
 
    public function testEmptySequentialArray() {
       $markdown = (string) new MarkdownEncoder([]);
       $this->assertSame('_(empty list)_', $markdown);
+   }
+
+   public function testOrderedListsOptionRestoresNumberedMarkersForPlainScalarList() {
+      $markdown = (string) new MarkdownEncoder(['foo', 'bar'], new MarkdownEncoderOptions(orderedLists: true));
+      $this->assertSame("1. foo\n2. bar", $markdown);
+   }
+
+   /**
+    * A list containing anything other than a plain scalar must render as an
+    * ordered list regardless of $orderedLists - it's the only marker style
+    * CommonMark can reliably nest a bare, content-less marker line under.
+    * See testTopLevelListOfMapsDoesNotNeedBlankLineSeparator below for the
+    * equivalent case with the default option value.
+    */
+   public function testOrderedListsOptionIsAlreadyImpliedForListOfMaps() {
+      $default = (string) new MarkdownEncoder([['name' => 'foo'], ['name' => 'bar']]);
+      $explicit = (string) new MarkdownEncoder(
+         [['name' => 'foo'], ['name' => 'bar']],
+         new MarkdownEncoderOptions(orderedLists: true)
+      );
+      $this->assertSame($default, $explicit);
+      $this->assertSame("1.\n   - **name:** foo\n2.\n   - **name:** bar", $default);
+   }
+
+   /**
+    * A single non-scalar element anywhere in the list forces ordered markers
+    * for every item in that list, not just the non-scalar one - CommonMark
+    * would otherwise read a mix of "-" and "1." markers within one list as
+    * two separate lists.
+    */
+   public function testSingleNonScalarElementForcesOrderedMarkersForWholeList() {
+      $markdown = (string) new MarkdownEncoder(['first', ['nested' => true]]);
+      $this->assertSame("1. first\n2.\n   - **nested:** true", $markdown);
    }
 
    public function testNestedSequentialArrays() {
@@ -50,7 +84,7 @@ final class MarkdownEncoderTest extends TestCase {
          ['inner-1', 'inner-2'],
       ]);
       $this->assertSame(
-         "1. outer\n2.\n   1. inner-1\n   2. inner-2",
+         "1. outer\n2.\n   - inner-1\n   - inner-2",
          $markdown
       );
    }
@@ -84,7 +118,7 @@ final class MarkdownEncoderTest extends TestCase {
          ],
       ]);
       $this->assertSame(
-         "1.\n   1.\n      1. a\n      2. b",
+         "1.\n   1.\n      - a\n      - b",
          $markdown
       );
    }
@@ -105,7 +139,7 @@ final class MarkdownEncoderTest extends TestCase {
       $markdown = (string) new MarkdownEncoder([
          'items' => ['a', 'b'],
       ]);
-      $this->assertSame("- **items:**\n  1. a\n  2. b", $markdown);
+      $this->assertSame("- **items:**\n  - a\n  - b", $markdown);
    }
 
    /**
@@ -169,7 +203,7 @@ final class MarkdownEncoderTest extends TestCase {
          ],
       ]);
       $this->assertSame(
-         "- **name:** Doug\n- **active:** true\n- **things:**\n  1. foo\n  2. bar",
+         "- **name:** Doug\n- **active:** true\n- **things:**\n  - foo\n  - bar",
          $markdown
       );
    }
@@ -213,7 +247,7 @@ final class MarkdownEncoderTest extends TestCase {
       $markdown = (string) new MarkdownEncoder((object) [
          'items' => ['a', 'b'],
       ]);
-      $this->assertSame("- **items:**\n  1. a\n  2. b", $markdown);
+      $this->assertSame("- **items:**\n  - a\n  - b", $markdown);
    }
 
    public function testArrayContainingObject() {
@@ -227,7 +261,7 @@ final class MarkdownEncoderTest extends TestCase {
       $markdown = (string) new MarkdownEncoder((object) [
          'tags' => ['x', 'y', 'z'],
       ]);
-      $this->assertSame("- **tags:**\n  1. x\n  2. y\n  3. z", $markdown);
+      $this->assertSame("- **tags:**\n  - x\n  - y\n  - z", $markdown);
    }
 
    public function testEmptyObject() {

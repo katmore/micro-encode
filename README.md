@@ -1,4 +1,6 @@
 # MicroEncode
+[![tests](https://github.com/katmore/micro-encode/actions/workflows/tests.yml/badge.svg)](https://github.com/katmore/micro-encode/actions/workflows/tests.yml)
+
 xml encoder and html generator
 
 **Requires PHP 8.5 or later.** See [CHANGELOG.md](./CHANGELOG.md) for the v2.0 upgrade notes if you're coming from a 1.x release.
@@ -13,6 +15,7 @@ composer require katmore/micro-encode
  * [Encoding data to XML](#xmlencoder-usage) - XmlEncoder Usage
  * [Generating HTML from data](#htmlencoder-usage) - HtmlEncoder Usage
  * [Generating Markdown from data](#markdownencoder-usage) - MarkdownEncoder Usage
+ * [Converting JSON to Markdown from the command line](#command-line-usage) - `bin/json2md`
 
 ### XmlEncoder Usage
 The [`XMLEncoder`](./src/MicroEncode/XmlEncoder.php) class serializes an XML document from arbitrary data. The [PHP data types](http://php.net/manual/en/language.types.intro.php) supported are: [`boolean`](http://php.net/manual/en/language.types.boolean.php), [`integer`](http://php.net/manual/en/language.types.integer.php), [`float`](http://php.net/manual/en/language.types.float.php), [`string`](http://php.net/manual/en/language.types.string.php), [`array`](http://php.net/manual/en/language.types.array.php), [`object`](http://php.net/manual/en/language.types.object.php), and [`null`](http://php.net/manual/en/language.types.null.php). The XML document conforms to the [Flat XML Schema](https://github.com/katmore/flat/wiki/xmlns) specification.
@@ -76,9 +79,9 @@ echo (new \MicroEncode\HtmlEncoder($myData, new \MicroEncode\HtmlEncoderOptions(
 ```
 
 ### MarkdownEncoder Usage
-The [`MarkdownEncoder`](./src/MicroEncode/MarkdownEncoder.php) class generates human-readable Markdown from arbitrary data. Unlike `XmlEncoder` and `HtmlEncoder`, it is not a reversible serializer — it does not preserve enough type/structure metadata to reconstruct the original PHP value, and it has no options.
+The [`MarkdownEncoder`](./src/MicroEncode/MarkdownEncoder.php) class generates human-readable Markdown from arbitrary data. Unlike `XmlEncoder` and `HtmlEncoder`, it is not a reversible serializer — it does not preserve enough type/structure metadata to reconstruct the original PHP value.
 
-Sequential indexed arrays (PHP "lists") become ordered Markdown lists; associative arrays and objects become unordered lists with their keys shown in bold. Each nested array or object is classified independently, so the two forms can mix freely at any depth.
+Sequential indexed arrays (PHP "lists") become unordered Markdown lists by default; associative arrays and objects become unordered lists with their keys shown in bold. Each nested array or object is classified independently, so the two forms can mix freely at any depth.
 
 ```php
 $myData = [
@@ -97,9 +100,62 @@ The above code should output the following Markdown:
 - **name:** Doug
 - **active:** true
 - **things:**
-  1. foo
-  2. bar
+  - foo
+  - bar
 ```
+
+Pass a [`MicroEncode\MarkdownEncoderOptions`](./src/MicroEncode/MarkdownEncoderOptions.php) to render lists with numbered markers (`1. foo`) instead:
+```php
+echo (new \MicroEncode\MarkdownEncoder($myData, new \MicroEncode\MarkdownEncoderOptions(
+   orderedLists: true,
+)));
+```
+This only changes lists where every element is a plain value. A list containing a nested array, object, or multiline string always renders with numbered markers regardless of this option — CommonMark can't reliably nest a bare `-` marker's own content apart from a new sibling item using that same character, so ordered numbers (which are self-disambiguating) are used as a structural necessity in that case.
+
+## Command-line usage
+The [`bin/json2md`](./bin/json2md) script converts JSON into Markdown, on the command line, using `MarkdownEncoder` under the hood. This section assumes no prior familiarity with PHP or Composer.
+
+**1. Make sure PHP and Composer are installed.** Run these two commands; if you get a version number back instead of a "command not found" error, you're set:
+```sh
+php -v
+composer -V
+```
+If either is missing, install PHP and [Composer](https://getcomposer.org/) first — that's outside the scope of this README.
+
+**2. Install this project's dependencies.** From inside this project's folder (the one containing `composer.json`), run:
+```sh
+composer install
+```
+This downloads everything the project needs into a `vendor/` folder. You only need to do this once (or again later if `composer.json` changes).
+
+**3. Run the script.** The simplest way, feeding it a JSON string directly:
+```sh
+echo '{"name":"Doug","active":true}' | php bin/json2md
+```
+That should print:
+```markdown
+- **name:** Doug
+- **active:** true
+```
+
+To convert a JSON *file* instead, pass its path as an argument:
+```sh
+php bin/json2md path/to/data.json
+```
+
+If you'd rather not type `php` every time, the script is already marked executable, so this also works:
+```sh
+./bin/json2md path/to/data.json
+```
+
+By default, lists render with `-` bullets. Add `--ordered` to get numbered lists (`1. foo`) instead, for lists where that applies:
+```sh
+echo '{"tags":["php","markdown"]}' | php bin/json2md --ordered
+```
+
+Run `php bin/json2md --help` any time for a reminder of the usage. If something's wrong with the input, the script prints a plain-English error to say what and exits with a non-zero status, rather than printing broken or empty output.
+
+If you instead installed this library as a dependency inside some *other* PHP project (via `composer require katmore/micro-encode`), use `vendor/bin/json2md` from that project's root instead of `bin/json2md` — Composer sets that path up for you automatically.
 
 ## Unit Tests
  * [`coverage.txt`](./coverage.txt): unit test coverage report

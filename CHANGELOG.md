@@ -6,10 +6,18 @@ Modernization release targeting current PHP and tooling. This is a **breaking** 
 
 ### Added
 - `MarkdownEncoder`: generates human-readable Markdown from arbitrary data. Sequential
-  indexed arrays render as ordered lists, associative arrays/objects render as unordered
-  keyed lists, and each nested structure is classified independently. It is a
-  human-readable representation, not a reversible serializer (unlike `XmlEncoder`), and
-  has no options.
+  indexed arrays render as unordered lists by default (`MarkdownEncoderOptions(orderedLists:
+  true)` switches to numbered markers), associative arrays/objects render as unordered
+  keyed lists, and each nested structure is classified independently. A list containing
+  anything other than a plain value always renders as an ordered list regardless of that
+  option - CommonMark cannot reliably nest a bare, content-less `-` marker's own content
+  apart from a new sibling item using the same character, so ordered numbers (which are
+  self-disambiguating) are used as a structural necessity in that case. It is a
+  human-readable representation, not a reversible serializer (unlike `XmlEncoder`).
+- `bin/json2md`: a command-line script that converts JSON to Markdown via
+  `MarkdownEncoder`. Reads from a file argument or stdin, writes to stdout, and accepts
+  `--ordered` to opt into numbered lists. Registered under Composer's `"bin"` config, so
+  it's available as `vendor/bin/json2md` to any project that requires this package.
 
 ### Breaking changes
 - Minimum PHP version is now **8.5** (was `>=7.2`).

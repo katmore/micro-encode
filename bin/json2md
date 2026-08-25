@@ -1,0 +1,97 @@
+#!/usr/bin/env php
+<?php
+/*
+ * part of the katmore/micro-encode project
+ *
+ * Copyright (c) 2012-2026 Doug Bird. All Rights Reserved.
+ */
+
+declare(strict_types=1);
+
+use MicroEncode\MarkdownEncoder;
+use MicroEncode\MarkdownEncoderOptions;
+
+foreach ([
+    __DIR__.'/../vendor/autoload.php',
+    __DIR__.'/../../../autoload.php',
+] as $autoloadFile) {
+    if (is_file($autoloadFile)) {
+        require $autoloadFile;
+        break;
+    }
+}
+
+if (!class_exists(MarkdownEncoder::class)) {
+    fwrite(STDERR, "json2md: dependencies are not installed yet.\n");
+    fwrite(STDERR, "Run this first, from the project's root directory:\n");
+    fwrite(STDERR, "  composer install\n");
+    exit(1);
+}
+
+const USAGE = <<<'USAGE'
+Usage:
+  json2md [--ordered] [<file>]
+  <something-producing-json> | json2md [--ordered]
+
+Converts JSON to readable Markdown, via MicroEncode\MarkdownEncoder.
+
+Reads JSON from <file> if given, otherwise from stdin, and writes the
+resulting Markdown to stdout.
+
+Options:
+  --ordered    Render lists of plain values as "1. foo" instead of the
+               default "- foo". A list containing anything other than
+               plain values (a nested object, array, or multiline
+               string) always renders as an ordered list either way.
+  -h, --help   Show this help and exit.
+
+USAGE;
+
+/** @var list<string> $argv */
+$args = array_slice($argv, 1);
+
+if (in_array('-h', $args, true) || in_array('--help', $args, true)) {
+    fwrite(STDOUT, USAGE);
+    exit(0);
+}
+
+$orderedLists = false;
+$path = null;
+
+foreach ($args as $arg) {
+    if ($arg === '--ordered') {
+        $orderedLists = true;
+        continue;
+    }
+    if ($path !== null) {
+        fwrite(STDERR, "json2md: too many arguments\n\n".USAGE);
+        exit(1);
+    }
+    $path = $arg;
+}
+
+if ($path !== null) {
+    if (!is_file($path) || !is_readable($path)) {
+        fwrite(STDERR, "json2md: cannot read file '$path'\n");
+        exit(1);
+    }
+    $json = file_get_contents($path);
+} else {
+    $json = stream_get_contents(STDIN);
+}
+
+if ($json === false || trim($json) === '') {
+    fwrite(STDERR, "json2md: no input provided\n\n".USAGE);
+    exit(1);
+}
+
+$data = json_decode($json);
+
+if (json_last_error() !== JSON_ERROR_NONE) {
+    fwrite(STDERR, 'json2md: invalid JSON - '.json_last_error_msg()."\n");
+    exit(1);
+}
+
+echo (string) new MarkdownEncoder($data, new MarkdownEncoderOptions(orderedLists: $orderedLists)), PHP_EOL;
+
+exit(0);
