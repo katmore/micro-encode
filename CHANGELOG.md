@@ -115,6 +115,28 @@ Modernization release targeting current PHP and tooling. This is a **breaking** 
   structure (a heading, a raw HTML block) out of what was supposed to be an escaped inline
   value. Bare `"\r"` now triggers the same fenced-code-block treatment as `"\n"` does.
 
+### Fixed - performance
+- **All three encoders rendered nested data in time quadratic in the nesting depth.**
+  Every recursive render function returned a finished string for its subtree, which its
+  caller then re-concatenated into its own growing string, so content near the bottom of a
+  nesting chain was re-copied once per ancestor level above it.
+  `MarkdownEncoder::indentLines()` compounded this by re-splitting and re-joining the
+  entire already-rendered text of every descendant at every parent level, to apply
+  indentation after the fact. Each level now appends to a single accumulator passed by
+  reference all the way down, exactly once, and `MarkdownEncoder` carries indentation
+  down as a running column instead of applying it afterwards (`indentLines()` is gone).
+  Cost is now linear in the size of the output. Encoding a 2000-level nesting chain on
+  php:8.5-cli went from 10.6s to 0.012s (`MarkdownEncoder`), 26.1s to 0.043s
+  (`XmlEncoder`), and 41.3s to 0.048s (`HtmlEncoder`); peak memory is equal or lower in
+  every shape measured. Output is byte-for-byte unchanged.
+- Note for subclassers: the recursion now runs through new methods
+  (`MarkdownEncoder::renderData()`, `XmlEncoder::appendFlatXml()`,
+  `HtmlEncoder::appendHtml()`), and the `protected static` helpers
+  `MarkdownEncoder::renderList()`/`renderMap()`/`renderItem()` changed signature while
+  `indentLines()` was removed. `dataToMarkdown()`, `dataToFlatXml()` and `dataToHtml()`
+  keep their signatures but are now only entry points - overriding one no longer
+  intercepts nested levels.
+
 ### Added
 - `MicroEncode\UndumpableDataException` (extends `\RuntimeException`): thrown by
   `XmlEncoder` when a value has no safe textual XML representation and
