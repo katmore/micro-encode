@@ -171,4 +171,38 @@ final class SerializeHtmlTest extends TestCase {
       $this->assertStringNotContainsString('(dump)', $html, 'non-ASCII text must not fall through to the var_dump() fallback path');
    }
 
+   /**
+    * Regression guard for quadratic generation.
+    *
+    * Each recursion level used to return a finished string for its subtree that
+    * the caller re-concatenated into its own growing string, so the bytes near
+    * the bottom of a nesting chain were re-copied once per ancestor level above
+    * them and cost grew with the square of the depth. This chain took about 17
+    * seconds to encode that way, and takes a few hundredths of a second now
+    * that every level appends to one shared accumulator exactly once.
+    */
+   public function testDeeplyNestedChainGeneratesCorrectlyAndQuickly() {
+      $depth = 1500;
+
+      $data = 1;
+      for($i=0;$i<$depth;$i++) {
+         $data = [$data];
+      }
+
+      $started = microtime(true);
+      $html = (string) new HtmlEncoder($data);
+      $elapsed = microtime(true) - $started;
+
+      // one list per nesting level; the innermost scalar is not itself a list
+      $this->assertSame($depth,substr_count($html,'<ul '),'every nesting level must produce exactly one list element');
+      $this->assertSame($depth,substr_count($html,'</ul>'),'every list element must be closed exactly once');
+      $this->assertStringContainsString('<span data-role="item-value" data-type="integer">1</span>',$html,'the innermost scalar value must still be rendered');
+
+      $this->assertLessThan(
+         5.0,
+         $elapsed,
+         "generating a depth-$depth chain took {$elapsed}s: generation has most likely regressed to re-copying each subtree once per ancestor level"
+      );
+   }
+
 }

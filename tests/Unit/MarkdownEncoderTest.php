@@ -385,4 +385,46 @@ final class MarkdownEncoderTest extends TestCase {
       $this->assertSame('- **a\*b:** value', $markdown);
    }
 
+   /**
+    * Regression guard for quadratic rendering.
+    *
+    * Rendering used to return a finished string per subtree that every ancestor
+    * re-concatenated into its own, and indentLines() re-split and re-joined the
+    * entire already-rendered text of every descendant at each parent level - so
+    * cost grew with the square of the nesting depth. This chain took about 25
+    * seconds to encode that way, and takes a few hundredths of a second now
+    * that each level appends to the shared accumulator exactly once.
+    */
+   public function testDeeplyNestedChainRendersCorrectlyAndQuickly() {
+      $depth = 2500;
+
+      $data = 1;
+      for ($i = 0; $i < $depth; $i++) {
+         $data = [$data];
+      }
+
+      $started = microtime(true);
+      $markdown = (string) new MarkdownEncoder($data);
+      $elapsed = microtime(true) - $started;
+
+      $lines = [];
+      for ($i = 0; $i < $depth - 1; $i++) {
+         $lines[] = str_repeat(' ', 3 * $i).'1.';
+      }
+      $lines[] = str_repeat(' ', 3 * ($depth - 1)).'- 1';
+
+      // compared with assertTrue() rather than assertSame() so that a failure
+      // doesn't try to render a diff of two multi-megabyte strings
+      $this->assertTrue(
+         implode("\n", $lines) === $markdown,
+         "a depth-$depth chain must render as one bare ordered marker per level, indented three spaces per level, with the scalar leaf on the last line"
+      );
+
+      $this->assertLessThan(
+         5.0,
+         $elapsed,
+         "encoding a depth-$depth chain took {$elapsed}s: rendering has most likely regressed to re-copying each subtree once per ancestor level"
+      );
+   }
+
 }

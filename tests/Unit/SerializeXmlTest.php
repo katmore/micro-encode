@@ -267,10 +267,45 @@ final class SerializeXmlTest extends TestCase {
    #[DataProvider('stringArrayProvider')]
    public function testSerializeStringArray(array $array) {
       $xmlString = (string) new XmlEncoder($array);
-      
+
       $simpleXml = new SimpleXMLElement($xmlString);
-      
+
       $this->compareTrueArrayWithSimpleXmlElement($array,$simpleXml,true);
+   }
+
+   /**
+    * Regression guard for quadratic serialization.
+    *
+    * Each recursion level used to return a finished string for its subtree that
+    * the caller re-concatenated into its own growing string, so the bytes near
+    * the bottom of a nesting chain were re-copied once per ancestor level above
+    * them and cost grew with the square of the depth. This chain took about 11
+    * seconds to encode that way, and takes a few hundredths of a second now
+    * that every level appends to one shared accumulator exactly once.
+    */
+   public function testDeeplyNestedChainSerializesCorrectlyAndQuickly() {
+      $depth = 1500;
+
+      $data = 1;
+      for($i=0;$i<$depth;$i++) {
+         $data = [$data];
+      }
+
+      $started = microtime(true);
+      $xmlString = (string) new XmlEncoder($data);
+      $elapsed = microtime(true) - $started;
+
+      // one element per nesting level, plus the root element
+      $this->assertSame($depth+1,substr_count($xmlString,'<fx:data'),'every nesting level must produce exactly one element');
+      $this->assertSame($depth+1,substr_count($xmlString,'</fx:data>'),'every element must be closed exactly once');
+      $this->assertStringEndsWith('</fx:data>',$xmlString);
+      $this->assertStringContainsString('>1</fx:data>',$xmlString,'the innermost scalar value must still be serialized as element content');
+
+      $this->assertLessThan(
+         5.0,
+         $elapsed,
+         "serializing a depth-$depth chain took {$elapsed}s: serialization has most likely regressed to re-copying each subtree once per ancestor level"
+      );
    }
    
    
