@@ -51,16 +51,17 @@ class MarkdownEncoder implements EncoderInterface
 
     protected static function dataToMarkdown(mixed $data, bool $orderedLists): string
     {
-        $buffer = [];
-        static::renderData($buffer, $data, $orderedLists, 0);
-        return implode('', $buffer);
+        $out = '';
+        static::renderData($out, $data, $orderedLists, 0);
+        return $out;
     }
 
     /**
-     * Renders $data into $buffer, one append per piece of output.
+     * Renders $data by appending to $out, which is passed by reference all the
+     * way down.
      *
-     * Every recursion level writes its own output exactly once into the single
-     * shared $buffer instead of returning a finished string for its caller to
+     * Every recursion level appends its own output exactly once to the single
+     * shared $out, instead of returning a finished string for its caller to
      * re-concatenate (which copied a subtree's bytes once per ancestor level,
      * i.e. O(depth^2) total). Indentation is carried down as the running
      * $indent column rather than applied afterwards to already-rendered text.
@@ -69,20 +70,18 @@ class MarkdownEncoder implements EncoderInterface
      * is responsible for writing the indentation of every line it emits -
      * including its first - except for lines that are empty, which stay empty
      * (matching what the previous post-hoc line-indenting did).
-     *
-     * @param array<int, string> $buffer
      */
-    protected static function renderData(array &$buffer, mixed $data, bool $orderedLists, int $indent): void
+    protected static function renderData(string &$out, mixed $data, bool $orderedLists, int $indent): void
     {
         if (is_array($data)) {
             if ($data === []) {
-                static::appendBlock($buffer, self::EMPTY_LIST_LABEL, $indent);
+                static::appendBlock($out, self::EMPTY_LIST_LABEL, $indent);
                 return;
             }
             if (array_is_list($data)) {
-                static::renderList($buffer, $data, $orderedLists, $indent);
+                static::renderList($out, $data, $orderedLists, $indent);
             } else {
-                static::renderMap($buffer, $data, $orderedLists, $indent);
+                static::renderMap($out, $data, $orderedLists, $indent);
             }
             return;
         }
@@ -90,19 +89,19 @@ class MarkdownEncoder implements EncoderInterface
         if (is_object($data)) {
             $pairs = static::objectToPairs($data);
             if ($pairs === []) {
-                static::appendBlock($buffer, self::EMPTY_MAP_LABEL, $indent);
+                static::appendBlock($out, self::EMPTY_MAP_LABEL, $indent);
                 return;
             }
-            static::renderMap($buffer, $pairs, $orderedLists, $indent);
+            static::renderMap($out, $pairs, $orderedLists, $indent);
             return;
         }
 
         if (is_string($data) && (str_contains($data, "\n") || str_contains($data, "\r"))) {
-            static::appendBlock($buffer, static::fencedCodeBlock($data), $indent);
+            static::appendBlock($out, static::fencedCodeBlock($data), $indent);
             return;
         }
 
-        static::appendBlock($buffer, static::renderScalar($data), $indent);
+        static::appendBlock($out, static::renderScalar($data), $indent);
     }
 
     /**
@@ -110,26 +109,30 @@ class MarkdownEncoder implements EncoderInterface
      * lines to $indent. Leaf blocks are terminal (a fenced code block or a
      * single scalar line), so this scans each one exactly once, at the level
      * where it occurs.
-     *
-     * @param array<int, string> $buffer
      */
-    protected static function appendBlock(array &$buffer, string $block, int $indent): void
+    protected static function appendBlock(string &$out, string $block, int $indent): void
     {
         if ($indent < 1) {
-            $buffer[] = $block;
+            $out .= $block;
             return;
         }
 
         $prefix = str_repeat(' ', $indent);
+        if (!str_contains($block, "\n")) {
+            if ($block !== '') {
+                $out .= $prefix.$block;
+            }
+            return;
+        }
+
         $first = true;
         foreach (explode("\n", $block) as $line) {
             if (!$first) {
-                $buffer[] = "\n";
+                $out .= "\n";
             }
             $first = false;
             if ($line !== '') {
-                $buffer[] = $prefix;
-                $buffer[] = $line;
+                $out .= $prefix.$line;
             }
         }
     }
@@ -147,10 +150,9 @@ class MarkdownEncoder implements EncoderInterface
     }
 
     /**
-     * @param array<int, string> $buffer
      * @param list<mixed> $items
      */
-    protected static function renderList(array &$buffer, array $items, bool $orderedLists, int $indent): void
+    protected static function renderList(string &$out, array $items, bool $orderedLists, int $indent): void
     {
         // A "-" marker only ever works when it's immediately followed by inline
         // content. The moment an item needs block layout (a nested array,
@@ -168,10 +170,10 @@ class MarkdownEncoder implements EncoderInterface
         $index = 1;
         foreach ($items as $value) {
             if ($index > 1) {
-                $buffer[] = "\n";
+                $out .= "\n";
             }
             $marker = $ordered ? $index.'.' : '-';
-            static::renderItem($buffer, $marker, null, $value, $orderedLists, $indent);
+            static::renderItem($out, $marker, null, $value, $orderedLists, $indent);
             $index++;
         }
     }
@@ -190,27 +192,23 @@ class MarkdownEncoder implements EncoderInterface
     }
 
     /**
-     * @param array<int, string> $buffer
      * @param array<int|string, mixed> $pairs
      */
-    protected static function renderMap(array &$buffer, array $pairs, bool $orderedLists, int $indent): void
+    protected static function renderMap(string &$out, array $pairs, bool $orderedLists, int $indent): void
     {
         $first = true;
         foreach ($pairs as $key => $value) {
             if (!$first) {
-                $buffer[] = "\n";
+                $out .= "\n";
             }
             $first = false;
             $label = '**'.static::escapeMarkdown((string) $key).':**';
-            static::renderItem($buffer, '-', $label, $value, $orderedLists, $indent);
+            static::renderItem($out, '-', $label, $value, $orderedLists, $indent);
         }
     }
 
-    /**
-     * @param array<int, string> $buffer
-     */
     protected static function renderItem(
-        array &$buffer,
+        string &$out,
         string $marker,
         ?string $label,
         mixed $value,
@@ -218,20 +216,11 @@ class MarkdownEncoder implements EncoderInterface
         int $indent
     ): void {
         if ($indent > 0) {
-            $buffer[] = str_repeat(' ', $indent);
+            $out .= str_repeat(' ', $indent);
         }
-        $buffer[] = $label === null ? $marker : "$marker $label";
+        $out .= $label === null ? $marker : "$marker $label";
 
         if (static::isBlock($value)) {
-            // The separator can only be decided after the nested block has been
-            // rendered (startsWithBareMarker() is deliberately evaluated in that
-            // same order as before), so reserve its slot in the buffer now and
-            // fill it in below rather than buffering the block separately.
-            $separatorSlot = count($buffer);
-            $buffer[] = "\n";
-
-            static::renderData($buffer, $value, $orderedLists, $indent + strlen($marker) + 1);
-
             // A label is rendered as an open paragraph. If the nested block's own
             // first line is itself a bare, content-less list marker (a list of
             // containers), CommonMark cannot let it interrupt that paragraph and
@@ -240,13 +229,18 @@ class MarkdownEncoder implements EncoderInterface
             // Bare markers never need this: they don't open a paragraph, so a
             // nested bare marker beneath them is already recognized correctly
             // - and inserting a blank line there would instead disconnect it.
-            if ($label !== null && static::startsWithBareMarker($value)) {
-                $buffer[$separatorSlot] = "\n\n";
-            }
+            //
+            // The separator has to be appended before the block it precedes, so
+            // this is now decided before the block is rendered rather than after
+            // (it inspects only $value's own first element, never the rendered
+            // text, so the decision itself is unchanged).
+            $out .= ($label !== null && static::startsWithBareMarker($value)) ? "\n\n" : "\n";
+
+            static::renderData($out, $value, $orderedLists, $indent + strlen($marker) + 1);
             return;
         }
 
-        $buffer[] = ' '.static::renderInlineValue($value);
+        $out .= ' '.static::renderInlineValue($value);
     }
 
     protected static function isBlock(mixed $value): bool

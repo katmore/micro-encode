@@ -76,19 +76,41 @@ class HtmlEncoder implements EncoderInterface
         int $indent_level = 1,
         int $indent_size = 3
     ): string {
+        $out = '';
+        static::appendHtml($out, $data, $parent_element, $child_element, $indent_level, $indent_size);
+        return $out;
+    }
+
+    /**
+     * Appends the HTML for $data to $out, which is passed by reference all the
+     * way down.
+     *
+     * Every recursion level appends its own output exactly once to the single
+     * shared $out, instead of returning a finished string for its caller to
+     * re-concatenate into a growing one - which re-copied a subtree's bytes
+     * once per ancestor level above it, i.e. O(depth^2) total.
+     */
+    protected static function appendHtml(
+        string &$out,
+        mixed $data,
+        string $parent_element,
+        string $child_element,
+        int $indent_level = 1,
+        int $indent_size = 3
+    ): void {
         if (is_array($data) || is_object($data)) {
             $i = 0;
-            $html = static::indent($indent_level, $indent_size)."<$parent_element data-type=\"".static::dataToMetaValue($data)."\">\n";
+            $out .= static::indent($indent_level, $indent_size)."<$parent_element data-type=\"".static::dataToMetaValue($data)."\">\n";
             foreach ($data as $key => $value) {
                 $key = (string) $key;
                 $indent_level++;
-                $html .= static::indent($indent_level, $indent_size)."<$child_element ";
-                $html .= "data-index=\"$i\" ";
-                $html .= 'data-key="'.htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE).'" data-role="item">';
+                $out .= static::indent($indent_level, $indent_size)."<$child_element ";
+                $out .= "data-index=\"$i\" ";
+                $out .= 'data-key="'.htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE).'" data-role="item">';
                 if (sprintf('%d', $key) !== $key) {
-                    $html .= '<span data-role="item-key">'.htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE).'</span>'.':&nbsp;';
+                    $out .= '<span data-role="item-key">'.htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE).'</span>'.':&nbsp;';
                 } else {
-                    $html .= '&nbsp;';
+                    $out .= '&nbsp;';
                 }
                 $value_type_str = '';
                 if (is_scalar($value)) {
@@ -100,18 +122,21 @@ class HtmlEncoder implements EncoderInterface
                 if ($value === null) {
                     $value_type_str = 'data-type="null"';
                 }
-                $html .=
-                    "<span data-role=\"item-value\" $value_type_str>".static::dataToHtml($value, $parent_element, $child_element, $indent_level);
-                $html .= "</span></$child_element><!--/data-item: (".htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE).")-->\n";
+                $out .= "<span data-role=\"item-value\" $value_type_str>";
+                // note: $indent_size is deliberately not forwarded here, so the
+                // recursion keeps using the default - exactly as before.
+                static::appendHtml($out, $value, $parent_element, $child_element, $indent_level);
+                $out .= "</span></$child_element><!--/data-item: (".htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE).")-->\n";
                 $indent_level--;
                 $i++;
             }
-            $html .= static::indent($indent_level, $indent_size)."</$parent_element>\n";
-            return $html;
+            $out .= static::indent($indent_level, $indent_size)."</$parent_element>\n";
+            return;
         }
 
         if (is_string($data) && $data === '') {
-            return "''";
+            $out .= "''";
+            return;
         }
         if (is_scalar($data)) {
             $str = (string) $data;
@@ -126,12 +151,13 @@ class HtmlEncoder implements EncoderInterface
             $isPrintable = mb_check_encoding($stripped, 'UTF-8')
                 && !preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $stripped);
             if ($isPrintable) {
-                return htmlspecialchars($str, ENT_QUOTES | ENT_SUBSTITUTE);
+                $out .= htmlspecialchars($str, ENT_QUOTES | ENT_SUBSTITUTE);
+                return;
             }
         }
         ob_start();
         var_dump($data);
         $dump = ob_get_clean();
-        return '(dump) <br><pre>'.nl2br(htmlspecialchars($dump, ENT_QUOTES | ENT_SUBSTITUTE)).'</pre>';
+        $out .= '(dump) <br><pre>'.nl2br(htmlspecialchars($dump, ENT_QUOTES | ENT_SUBSTITUTE)).'</pre>';
     }
 }

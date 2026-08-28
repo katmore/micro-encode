@@ -298,27 +298,26 @@ class XmlEncoder implements EncoderInterface
         array $checksum = ['md5'],
         array $options = []
     ): string {
-        $buffer = [];
-        static::appendFlatXml($buffer, $data, $default_node, $indent_level, $indent_size, $dump_ok, $checksum, $options);
-        return implode('', $buffer);
+        $out = '';
+        static::appendFlatXml($out, $data, $default_node, $indent_level, $indent_size, $dump_ok, $checksum, $options);
+        return $out;
     }
 
     /**
-     * Appends the XML for $data to $buffer, one append per piece of output.
+     * Appends the XML for $data to $out, which is passed by reference all the
+     * way down.
      *
-     * Every recursion level writes its own output exactly once into the single
-     * shared $buffer, instead of returning a finished string for its caller to
+     * Every recursion level appends its own output exactly once to the single
+     * shared $out, instead of returning a finished string for its caller to
      * re-concatenate into a growing one - which re-copied a subtree's bytes
-     * once per ancestor level above it, i.e. O(depth^2) total. The buffer is
-     * imploded once, at the top level, by dataToFlatXml().
+     * once per ancestor level above it, i.e. O(depth^2) total.
      *
-     * @param array<int, string> $buffer
      * @param mixed $data
      * @param string[] $checksum
      * @param array<string,mixed> $options
      */
     protected static function appendFlatXml(
-        array &$buffer,
+        string &$out,
         mixed $data,
         string $default_node,
         int $indent_level = 1,
@@ -367,32 +366,32 @@ class XmlEncoder implements EncoderInterface
                     $node = $default_node;
                 }
                 $node = strtolower($node);
-                $buffer[] = static::indent($indent_level, $indent_size)."<$ns$node$nodeNsidattr";
+                $out .= static::indent($indent_level, $indent_size)."<$ns$node$nodeNsidattr";
                 if (is_int($key)) {
                     $index = $key;
-                    $buffer[] = " extxs:index=\"$key\"";
+                    $out .= " extxs:index=\"$key\"";
                 }
                 if ($key != $node) {
                     $keyval = htmlspecialchars((string) $key, ENT_QUOTES | ENT_SUBSTITUTE | ENT_XML1 | ENT_DISALLOWED, 'UTF-8');
                     if ($keyval != $index) {
-                        $buffer[] = " extxs:key=\"$keyval\"";
+                        $out .= " extxs:key=\"$keyval\"";
                     }
                 }
 
                 if (is_array($value) || is_object($value)) {
                     $indent_level++;
-                    $buffer[] = ">\n";
-                    static::appendFlatXml($buffer, $value, $default_node, $indent_level, $indent_size, $dump_ok, $checksum, $options);
+                    $out .= ">\n";
+                    static::appendFlatXml($out, $value, $default_node, $indent_level, $indent_size, $dump_ok, $checksum, $options);
                     $indent_level--;
-                    $buffer[] = static::indent($indent_level, $indent_size)."</$ns$node>\n";
+                    $out .= static::indent($indent_level, $indent_size)."</$ns$node>\n";
                 } elseif ($value === null) {
                     if (!empty($options['xsi_type']['nil'])) {
-                        $buffer[] = ' xsi:nil="true"'.' ';
+                        $out .= ' xsi:nil="true"'.' ';
                     }
-                    $buffer[] = "/>\n";
+                    $out .= "/>\n";
                 } elseif (is_string($value) && ($value === '')) {
-                    $buffer[] = ' xsi:nil="true"';
-                    $buffer[] = "/>\n";
+                    $out .= ' xsi:nil="true"';
+                    $out .= "/>\n";
                 } else {
                     $xsi = '';
                     if (!empty($options['xsi_type'])) {
@@ -401,9 +400,9 @@ class XmlEncoder implements EncoderInterface
                         }
                     }
 
-                    $buffer[] = "$xsi>";
-                    static::appendFlatXml($buffer, $value, $default_node, $indent_level, $indent_size, $dump_ok, $checksum, $options);
-                    $buffer[] = "</$ns$node>\n";
+                    $out .= "$xsi>";
+                    static::appendFlatXml($out, $value, $default_node, $indent_level, $indent_size, $dump_ok, $checksum, $options);
+                    $out .= "</$ns$node>\n";
                 }
             }
             return;
@@ -440,7 +439,7 @@ class XmlEncoder implements EncoderInterface
             // formatting, and stripping it silently discarded whitespace-only
             // values entirely (see the dumpOk branch below for what's left once
             // booleans, null, and invalid UTF-8 are all handled above).
-            $buffer[] = $xml;
+            $out .= $xml;
             return;
         }
 
@@ -470,9 +469,9 @@ class XmlEncoder implements EncoderInterface
             $encoding .= ' extxs:mtype="'.$mtype.'"';
         }
         $indent_level++;
-        $buffer[] = "\n".static::indent($indent_level, $indent_size);
-        $buffer[] = "<$default_node extxs:DumpObject=\"xs:base64Binary\"$checksum_attr$encoding>$base64";
+        $out .= "\n".static::indent($indent_level, $indent_size);
+        $out .= "<$default_node extxs:DumpObject=\"xs:base64Binary\"$checksum_attr$encoding>$base64";
         $indent_level--;
-        $buffer[] = "</$default_node>\n".static::indent($indent_level, $indent_size);
+        $out .= "</$default_node>\n".static::indent($indent_level, $indent_size);
     }
 }
