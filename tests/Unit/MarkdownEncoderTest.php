@@ -288,12 +288,33 @@ final class MarkdownEncoderTest extends TestCase {
          'backslash' => ['back\\slash', 'back\\\\slash'],
          'leading dash' => ['- item', '\- item'],
          'leading hash' => ['# heading', '\# heading'],
+         'angle brackets' => ['<b>bold</b>', '\<b\>bold\</b\>'],
+         'ampersand' => ['Q&A', 'Q\&A'],
       ];
    }
 
    #[DataProvider('markdownPunctuationProvider')]
    public function testStringsWithMarkdownPunctuationAreEscaped(string $input, string $expected) {
       $this->assertSame($expected, (string) new MarkdownEncoder($input));
+   }
+
+   /**
+    * Regression test for the actual attack this escaping closes: CommonMark
+    * permits raw inline HTML by default, and many renderers (Parsedown,
+    * marked without a sanitizer, etc.) pass it straight through unless
+    * configured not to. Without escaping < and >, a value containing a
+    * <script> tag would render as live, executable HTML wherever this
+    * Markdown output eventually gets rendered - not just "ugly output", an
+    * actual stored-XSS path from bin/json2md's stdin to a renderer.
+    */
+   public function testRawHtmlInValueIsNeutralized() {
+      $markdown = (string) new MarkdownEncoder([
+         'comment' => '<script>alert(document.cookie)</script>',
+      ]);
+      $this->assertSame(
+         '- **comment:** \<script\>alert(document.cookie)\</script\>',
+         $markdown
+      );
    }
 
    public function testUnicodeStringsPassThroughUnescaped() {

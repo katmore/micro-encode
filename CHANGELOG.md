@@ -104,8 +104,11 @@ Modernization release targeting current PHP and tooling. This is a **breaking** 
   permits raw inline HTML by default in many renderers, a value containing e.g.
   `<script>...</script>` passed straight through unescaped — meaning `bin/json2md` had a
   direct path from arbitrary JSON on stdin to a stored-XSS payload in whatever eventually
-  rendered the output. Those three characters are now escaped like the rest of the
-  Markdown-significant character set.
+  rendered the output. Verified against the reference `commonmark` implementation: the
+  fixed output renders as inert literal text (`&lt;script&gt;...`), not a live `<script>`
+  tag. Those three characters are now escaped like the rest of the Markdown-significant
+  character set (backslash-escaping is valid per the CommonMark spec for any ASCII
+  punctuation character).
 - **`MarkdownEncoder`: multiline-string detection only checked for `"\n"`, not `"\r"`.** A
   string containing only `"\r"` characters passed through the inline-value path with its
   `"\r"`s intact; a renderer that treats bare `"\r"` as a line terminator could then read

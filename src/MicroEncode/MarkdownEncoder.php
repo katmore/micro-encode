@@ -229,7 +229,16 @@ class MarkdownEncoder implements EncoderInterface
         }
 
         $escaped = str_replace('\\', '\\\\', $value);
-        $escaped = preg_replace('/([*_`\[\]])/', '\\\\$1', $escaped);
+        // *_`[] are escaped because they're CommonMark inline-markup syntax.
+        // <, >, and & are escaped for a different reason: CommonMark permits
+        // raw inline HTML by default, and many renderers pass it straight
+        // through unless explicitly configured not to (e.g. Parsedown, or
+        // marked without a sanitizer) - so an unescaped value containing
+        // something like "<script>...</script>" would render as live HTML in
+        // whatever eventually consumes this output. Backslash-escaping these
+        // is valid per the CommonMark spec (any ASCII punctuation character
+        // may be backslash-escaped) and renders as literal text instead.
+        $escaped = preg_replace('/([*_`\[\]<>&])/', '\\\\$1', $escaped);
 
         if ($escaped[0] === '-' || $escaped[0] === '#') {
             $escaped = '\\'.$escaped;
