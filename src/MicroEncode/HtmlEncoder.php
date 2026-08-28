@@ -84,9 +84,9 @@ class HtmlEncoder implements EncoderInterface
                 $indent_level++;
                 $html .= static::indent($indent_level, $indent_size)."<$child_element ";
                 $html .= "data-index=\"$i\" ";
-                $html .= 'data-key="'.htmlspecialchars($key, ENT_QUOTES).'" data-role="item">';
+                $html .= 'data-key="'.htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE).'" data-role="item">';
                 if (sprintf('%d', $key) !== $key) {
-                    $html .= '<span data-role="item-key">'.htmlspecialchars($key, ENT_QUOTES).'</span>'.':&nbsp;';
+                    $html .= '<span data-role="item-key">'.htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE).'</span>'.':&nbsp;';
                 } else {
                     $html .= '&nbsp;';
                 }
@@ -102,7 +102,7 @@ class HtmlEncoder implements EncoderInterface
                 }
                 $html .=
                     "<span data-role=\"item-value\" $value_type_str>".static::dataToHtml($value, $parent_element, $child_element, $indent_level);
-                $html .= "</span></$child_element><!--/data-item: (".htmlspecialchars($key, ENT_QUOTES).")-->\n";
+                $html .= "</span></$child_element><!--/data-item: (".htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE).")-->\n";
                 $indent_level--;
                 $i++;
             }
@@ -113,12 +113,25 @@ class HtmlEncoder implements EncoderInterface
         if (is_string($data) && $data === '') {
             return "''";
         }
-        if (is_scalar($data) && ctype_print(str_replace(["\n", "\r"], '', (string) $data))) {
-            return htmlspecialchars((string) $data, ENT_QUOTES);
+        if (is_scalar($data)) {
+            $str = (string) $data;
+            $stripped = str_replace(["\n", "\r"], '', $str);
+            // ctype_print() operates byte-wise under the "C" locale, where only
+            // ASCII 0x20-0x7E counts as printable -- meaning any non-ASCII UTF-8
+            // text (accented letters, CJK, emoji; i.e. most real-world strings)
+            // fails it and falls through to the var_dump() branch below instead
+            // of rendering cleanly. Check for valid UTF-8 and the absence of
+            // actual control bytes instead, so non-ASCII text is treated the
+            // same as ASCII text.
+            $isPrintable = mb_check_encoding($stripped, 'UTF-8')
+                && !preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $stripped);
+            if ($isPrintable) {
+                return htmlspecialchars($str, ENT_QUOTES | ENT_SUBSTITUTE);
+            }
         }
         ob_start();
         var_dump($data);
         $dump = ob_get_clean();
-        return '(dump) <br><pre>'.nl2br(htmlspecialchars($dump, ENT_QUOTES)).'</pre>';
+        return '(dump) <br><pre>'.nl2br(htmlspecialchars($dump, ENT_QUOTES | ENT_SUBSTITUTE)).'</pre>';
     }
 }

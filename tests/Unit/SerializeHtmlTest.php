@@ -154,23 +154,21 @@ final class SerializeHtmlTest extends TestCase {
       unset($propName);
       unset($propValue);
       unset($element);
-      
+
    }
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
+
+   /**
+    * ctype_print() operates byte-wise under the "C" locale, where only ASCII
+    * 0x20-0x7E counts as printable - so any non-ASCII UTF-8 text used to fail
+    * it and fall through to a var_dump()-based rendering instead of a clean
+    * escaped value, which is the common case for internationalized text, not
+    * an edge case.
+    */
+   public function testNonAsciiUnicodeRendersCleanlyNotAsDump() {
+      $html = (string) new HtmlEncoder(['name' => 'café 日本語']);
+
+      $this->assertStringContainsString('café 日本語', $html, 'non-ASCII text should render as-is, not be replaced by a var_dump()');
+      $this->assertStringNotContainsString('(dump)', $html, 'non-ASCII text must not fall through to the var_dump() fallback path');
+   }
+
 }

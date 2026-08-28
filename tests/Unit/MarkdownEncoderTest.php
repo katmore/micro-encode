@@ -321,6 +321,24 @@ final class MarkdownEncoderTest extends TestCase {
       );
    }
 
+   /**
+    * A bare "\r" (with no "\n") must also trigger block/fenced treatment, not
+    * just "\n" - otherwise a value containing only "\r" would pass through the
+    * inline-value path with the "\r" intact, and a renderer that treats "\r"
+    * as a line terminator could read markdown/HTML structure out of it that
+    * escapeMarkdown() never had a chance to neutralize (e.g. a fake heading
+    * or raw HTML block smuggled past the escaping applied to inline values).
+    */
+   public function testBareCarriageReturnRendersAsFencedBlock() {
+      $markdown = (string) new MarkdownEncoder([
+         'message' => "hello\rworld",
+      ]);
+      $this->assertSame(
+         "- **message:**\n  ```\n  hello\rworld\n  ```",
+         $markdown
+      );
+   }
+
    public function testMultilineStringContainingBackticksWidensFence() {
       $markdown = (string) new MarkdownEncoder([
          'code' => "```\nsome code\n```",

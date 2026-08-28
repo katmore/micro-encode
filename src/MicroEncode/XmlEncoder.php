@@ -84,7 +84,14 @@ class XmlEncoder implements EncoderInterface
         $checksum_data = null;
         foreach ($options->checksumAlgos as $algo) {
             if ($checksum_data === null) {
-                $checksum_data = json_encode($checksum_data);
+                // hash the actual payload being encoded, not a constant. json_encode()
+                // can fail on data it can't represent (invalid UTF-8 strings, NAN/INF
+                // floats) — serialize() is used as a fallback so the checksum still
+                // reflects the real input rather than silently becoming a constant again.
+                $checksum_data = json_encode($data);
+                if ($checksum_data === false) {
+                    $checksum_data = serialize($data);
+                }
             }
             $hash = hash($algo, $checksum_data);
             if (!hexdec($hash)) {
@@ -214,7 +221,7 @@ class XmlEncoder implements EncoderInterface
             return intval($data) == $data ? 'extxs:NumericStringInt' : 'extxs:NumericStringFloat';
         }
 
-        if ($param['DateTime'] && false !== ($ts = strtotime($data)) && !empty($ts)) {
+        if ($param['DateTime'] && trim($data) !== '' && false !== ($ts = strtotime($data)) && !empty($ts)) {
             return 'xs:DateTime';
         }
 
@@ -239,7 +246,11 @@ class XmlEncoder implements EncoderInterface
             return '';
         }
         $type = get_class($data);
-        $type = $type === 'stdClass' ? 'Generic' : "\\$type";
+        // an anonymous class's name embeds its defining file's path and line
+        // number (e.g. "class@anonymous /app/src/Foo.php:20$0") — treat it as
+        // generic, same as XmlDataStructure does, instead of leaking that path.
+        $isAnonymous = str_starts_with($type, 'class@anonymous');
+        $type = ($type === 'stdClass' || $isAnonymous) ? 'Generic' : "\\$type";
         return ' xsi:type="extxs:Object" extxs:ObjectType="'.preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $type).'"';
     }
 
@@ -368,10 +379,44 @@ class XmlEncoder implements EncoderInterface
             return $xml;
         }
 
-        $data = (string) $data;
+        // A nested null value never reaches this point at all -- the per-key
+        // dispatch loop above already intercepts it before recursing (mirroring
+        // how it handles an empty string). The only way $data can be null here
+        // is a *top-level* `new XmlEncoder(null)`, whose root element already
+        // carries xsi:nil="true" (set in the constructor) -- so its content is
+        // legitimately empty, not "undumpable".
+        if ($data === null) {
+            return '';
+        }
 
-        if ('' !== ($xml = htmlspecialchars($data, ENT_XML1 | ENT_DISALLOWED, 'UTF-8'))) {
-            return trim($xml);
+        // Booleans stringify asymmetrically ((string) true === '1', but
+        // (string) false === ''), which otherwise misroutes an ordinary `false`
+        // leaf value into the "undumpable data" branch below, right alongside
+        // genuinely empty strings. Normalize explicitly so both boolean values
+        // render as ordinary text content.
+        $data = is_bool($data) ? ($data ? '1' : '0') : (string) $data;
+
+        // Invalid UTF-8 can never be represented as well-formed XML text content
+        // (XML 1.0 requires it). Route it to the same dumpOk-gated handling as
+        // other non-representable values instead of letting htmlspecialchars()
+        // silently substitute lossy U+FFFD replacement characters for it -- the
+        // dump path below preserves the original bytes exactly (base64 doesn't
+        // care about UTF-8 validity), which ENT_SUBSTITUTE's approach would not.
+        $isValidUtf8 = mb_check_encoding($data, 'UTF-8');
+
+        if ($isValidUtf8 && '' !== ($xml = htmlspecialchars($data, ENT_XML1 | ENT_DISALLOWED | ENT_SUBSTITUTE, 'UTF-8'))) {
+            // note: intentionally not trim()'d — leading/trailing whitespace in
+            // the original value is meaningful text content, not incidental
+            // formatting, and stripping it silently discarded whitespace-only
+            // values entirely (see the dumpOk branch below for what's left once
+            // booleans, null, and invalid UTF-8 are all handled above).
+            return $xml;
+        }
+
+        if (!$dump_ok) {
+            throw new UndumpableDataException(
+                "encountered a value with no safe textual XML representation (an empty string, or a type such as a resource); pass XmlEncoderOptions(dumpOk: true) to allow a binary dump fallback instead"
+            );
         }
 
         $checksum_attr = '';

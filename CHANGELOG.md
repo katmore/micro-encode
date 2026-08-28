@@ -65,3 +65,54 @@ Modernization release targeting current PHP and tooling. This is a **breaking** 
 - `dataToXsiType()` returned `void` (triggering a `TypeError`, since its return type is
   `string`) when called with non-scalar data. It now returns `''` in that case. This is
   reachable from `dataToArrayTypeAttributes()` when a true array contains nested arrays/objects.
+
+### Fixed - correctness and security (see `SECURITY-CONSIDERATIONS.md`)
+- **`XmlEncoder`: a boolean `false` leaf value was silently misrouted into the
+  "undumpable data" fallback** (`(string) false === ''`, the same empty-string check
+  invalid UTF-8 abused), producing an empty binary-dump node instead of a normal boolean.
+  `true`/`false` now render symmetrically (`1`/`0`).
+- **`XmlEncoder`: the document-level `fx:md5` checksum attribute was a constant**
+  (`md5('null')` on every document, regardless of the data encoded) rather than actually
+  hashing the payload. It now hashes the real input data (`json_encode`, falling back to
+  `serialize` for data `json_encode` can't represent).
+- **`XmlEncoder`: `XmlEncoderOptions::$dumpOk` was dead code** — the binary-dump fallback
+  path (base64 + `finfo`/`libmagic` MIME sniffing) ran unconditionally regardless of the
+  option's value. It's now actually gated by it: with `dumpOk` `false` (the default), data
+  with no safe textual XML representation throws a new `MicroEncode\UndumpableDataException`
+  instead of silently producing a dump; `dumpOk: true` restores the previous dump behavior.
+- **`XmlEncoder`: invalid UTF-8 in a leaf value is now routed through the same `dumpOk`
+  gate**, preserving it losslessly via the existing base64 dump when allowed (or throwing
+  by default), instead of being silently and irreversibly replaced with U+FFFD characters.
+- **`XmlEncoder`: encoding an anonymous class instance leaked its defining source file's
+  path and line number** into the output (`extxs:ObjectType="\class@anonymous/path:20$0"`).
+  It's now treated as generic, consistent with how `stdClass` and the separate `fx:meta`
+  codepath already handle it.
+- **`XmlEncoder`: a whitespace-only or leading/trailing-whitespace string value was
+  silently trimmed away**, and an all-whitespace string could be misdetected as
+  `xsi:type="xs:DateTime"` (`strtotime()` treats it leniently). Whitespace in values is now
+  preserved, and DateTime detection ignores whitespace-only input.
+- **`HtmlEncoder`: any non-ASCII string fell through to a `var_dump()`-based rendering**
+  instead of a clean escaped value, because `ctype_print()` only recognizes ASCII 0x20-0x7E
+  under the "C" locale — meaning essentially any real-world internationalized text (accented
+  letters, CJK, emoji) hit the fallback path rather than the intended one. Replaced with a
+  UTF-8-aware printable check.
+- **`HtmlEncoder`/`XmlEncoder`: several `htmlspecialchars()` calls were missing
+  `ENT_SUBSTITUTE`**, so a key or value containing invalid UTF-8 silently became an empty
+  string rather than being escaped (or, in `XmlEncoder`'s case, this was also what
+  misrouted invalid UTF-8 into the dump path in the first place). Now consistently present.
+- **`MarkdownEncoder`: `escapeMarkdown()` never escaped `<`, `>`, or `&`.** Since CommonMark
+  permits raw inline HTML by default in many renderers, a value containing e.g.
+  `<script>...</script>` passed straight through unescaped — meaning `bin/json2md` had a
+  direct path from arbitrary JSON on stdin to a stored-XSS payload in whatever eventually
+  rendered the output. Those three characters are now escaped like the rest of the
+  Markdown-significant character set.
+- **`MarkdownEncoder`: multiline-string detection only checked for `"\n"`, not `"\r"`.** A
+  string containing only `"\r"` characters passed through the inline-value path with its
+  `"\r"`s intact; a renderer that treats bare `"\r"` as a line terminator could then read
+  structure (a heading, a raw HTML block) out of what was supposed to be an escaped inline
+  value. Bare `"\r"` now triggers the same fenced-code-block treatment as `"\n"` does.
+
+### Added
+- `MicroEncode\UndumpableDataException` (extends `\RuntimeException`): thrown by
+  `XmlEncoder` when a value has no safe textual XML representation and
+  `XmlEncoderOptions::$dumpOk` is `false` (the default).

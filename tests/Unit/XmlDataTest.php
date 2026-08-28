@@ -10,6 +10,8 @@ declare(strict_types=1);
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use MicroEncode\XmlEncoder;
+use MicroEncode\XmlEncoderOptions;
+use MicroEncode\UndumpableDataException;
 
 final class XmlDataTest extends TestCase {
 
@@ -98,11 +100,21 @@ final class XmlDataTest extends TestCase {
    
    const BINARY_DATA_BASE64 = 'R0lGODlhEAAOALMAAOazToeHh0tLS/7LZv/0jvb29t/f3//Ub//ge8WSLf/rhf/3kdbW1mxsbP//mf///yH5BAAAAAAALAAAAAAQAA4AAARe8L1Ekyky67QZ1hLnjM5UUde0ECwLJoExKcppV0aCcGCmTIHEIUEqjgaORCMxIC6e0CcguWw6aFjsVMkkIr7g77ZKPJjPZqIyd7sJAgVGoEGv2xsBxqNgYPj/gAwXEQA7';
    
+   public function testUndumpableDataThrowsByDefault() {
+      $object = (object) [
+         'my_property'=>base64_decode(static::BINARY_DATA_BASE64),
+      ];
+      $this->expectException(UndumpableDataException::class);
+      new XmlEncoder($object);
+   }
+
    public function testBinaryData() {
       $object = (object) [
          'my_property'=>base64_decode(static::BINARY_DATA_BASE64),
       ];
-      $xmlString = (string) new XmlEncoder($object);
+      // dumpOk must be explicitly requested -- binary/undumpable data throws by
+      // default (see testUndumpableDataThrowsByDefault above).
+      $xmlString = (string) new XmlEncoder($object, new XmlEncoderOptions(dumpOk: true));
       $simpleXml = new SimpleXMLElement($xmlString);
       
       //echo $simpleXml->asXML()."\n";
@@ -410,8 +422,13 @@ final class XmlDataTest extends TestCase {
       $this->assertEquals('xs:boolean', $myPropertyType,'the "my_property" element should have an "xsi:type" attribute that equals "xs:boolean"');
       
       $myPropertyVal = trim((string) $myProperty);
-      
-      $this->assertEquals((string) $boolean,$myPropertyVal ,'the "my_property" element should have expected boolean value');
+
+      // Note: not (string) $boolean -- PHP's cast is asymmetric ('1' for true,
+      // but '' for false), which previously let a false value get misrouted
+      // into XmlEncoder's "undumpable data" fallback undetected by this
+      // assertion. The corrected encoder renders both values symmetrically.
+      $expectedVal = $boolean ? '1' : '0';
+      $this->assertEquals($expectedVal,$myPropertyVal ,'the "my_property" element should have expected boolean value');
       
    }
    
@@ -593,8 +610,42 @@ final class XmlDataTest extends TestCase {
       $myPropertyVal = trim((string) $myProperty);
       
       $this->assertEquals((string) $integer,$myPropertyVal ,'the "my_property" element should have expected integer value');
-      
-      
+
+
    }
-   
+
+   public function testDocumentChecksumVariesWithData() {
+      $checksumOf = function (mixed $data): string {
+         $xml = (string) new XmlEncoder($data);
+         preg_match('/fx:md5="([a-f0-9]+)"/', $xml, $m);
+         return $m[1];
+      };
+
+      $checksum1 = $checksumOf(['a' => 1]);
+      $checksum2 = $checksumOf(['a' => 2]);
+
+      $this->assertNotSame(
+         $checksum1,
+         $checksum2,
+         'the document-level fx:md5 checksum must depend on the actual encoded data, not be a constant'
+      );
+   }
+
+   public function testWhitespaceOnlyStringValueIsPreserved() {
+      $xmlString = (string) new XmlEncoder(['v' => '  padded  ']);
+      $simpleXml = new SimpleXMLElement($xmlString);
+
+      $this->assertEquals('  padded  ', (string) $simpleXml->v, 'leading/trailing whitespace in a value must not be silently trimmed away');
+   }
+
+   public function testAnonymousClassDoesNotLeakSourcePath() {
+      $anon = new class {
+         public int $x = 1;
+      };
+      $xmlString = (string) new XmlEncoder($anon);
+
+      $this->assertStringNotContainsString('.php', $xmlString, 'encoding an anonymous class instance must not leak its defining source file path');
+      $this->assertStringContainsString('extxs:ObjectType="Generic"', $xmlString, 'an anonymous class should be typed the same as a generic stdClass object');
+   }
+
 }

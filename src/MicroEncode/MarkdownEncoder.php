@@ -65,7 +65,7 @@ class MarkdownEncoder implements EncoderInterface
             return $pairs === [] ? self::EMPTY_MAP_LABEL : static::renderMap($pairs, $orderedLists);
         }
 
-        if (is_string($data) && str_contains($data, "\n")) {
+        if (is_string($data) && (str_contains($data, "\n") || str_contains($data, "\r"))) {
             return static::fencedCodeBlock($data);
         }
 
@@ -169,7 +169,7 @@ class MarkdownEncoder implements EncoderInterface
         if (is_object($value)) {
             return static::objectToPairs($value) !== [];
         }
-        return is_string($value) && str_contains($value, "\n");
+        return is_string($value) && (str_contains($value, "\n") || str_contains($value, "\r"));
     }
 
     protected static function startsWithBareMarker(mixed $value): bool
